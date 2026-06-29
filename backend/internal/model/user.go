@@ -15,6 +15,7 @@ type User struct {
     UserAvatar   *string    `gorm:"column:userAvatar" json:"userAvatar"`
     UserProfile  *string    `gorm:"column:userProfile" json:"userProfile"`
     UserRole     string     `gorm:"column:userRole;default:user" json:"userRole"`
+	Quota        int        `gorm:"column:quota;default:5" json:"quota"`
     EditTime     *time.Time `gorm:"column:editTime" json:"editTime"`
     CreateTime   time.Time  `gorm:"column:createTime;autoCreateTime" json:"createTime"`
     UpdateTime   time.Time  `gorm:"column:updateTime;autoUpdateTime" json:"updateTime"`
@@ -67,6 +68,7 @@ func (u *User) ToLoginUser() *LoginUser {
 		UserAvatar:  u.UserAvatar,
 		UserProfile: u.UserProfile,
 		UserRole:    u.UserRole,
+		Quota:       u.Quota,
 		CreateTime:  u.CreateTime,
 		UpdateTime:  u.UpdateTime,
 		EditTime:    u.EditTime,

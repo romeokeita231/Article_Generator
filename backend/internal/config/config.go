@@ -13,6 +13,8 @@ type Config struct {
     Database DatabaseConfig `mapstructure:"database"`
     Redis    RedisConfig    `mapstructure:"redis"`
     Session  SessionConfig  `mapstructure:"session"`
+    AI       AIConfig       `mapstructure:"ai"`
+    Pexels   PexelsConfig   `mapstructure:"pexels"`
     Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -52,6 +54,23 @@ type LogConfig struct {
     Level    string `mapstructure:"level"`
     FilePath string `mapstructure:"file_path"`
 }
+
+// AIConfig AI 配置
+type AIConfig struct {
+    DashScope DashScopeConfig `mapstructure:"dashscope"`
+}
+
+// DashScopeConfig 阿里云 DashScope 配置
+type DashScopeConfig struct {
+    APIKey string `mapstructure:"api_key"`
+    Model  string `mapstructure:"model"`
+}
+
+// PexelsConfig Pexels 配置
+type PexelsConfig struct {
+    APIKey string `mapstructure:"api_key"`
+}
+
 
 // LoadConfig 加载配置文件
 func LoadConfig(configPath string) (*Config, error) {
