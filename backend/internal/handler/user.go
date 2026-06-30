@@ -24,8 +24,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 
 // Register 用户注册
 // @Summary 用户注册
-// @Description 用户注册接口
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Param request body model.RegisterRequest true "注册信息"
@@ -49,8 +48,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 
 // Login 用户登录
 // @Summary 用户登录
-// @Description 用户登录接口
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Param request body model.LoginRequest true "登录信息"
@@ -75,8 +73,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 // GetLoginUser 获取当前登录用户
 // @Summary 获取当前登录用户
-// @Description 获取当前登录用户信息
-// @Tags 用户
+// @Tags user
 // @Produce json
 // @Success 200 {object} common.BaseResponse{data=model.LoginUser}
 // @Router /user/login [get]
@@ -93,8 +90,7 @@ func (h *UserHandler) GetLoginUser(c *gin.Context) {
 
 // Logout 用户注销
 // @Summary 用户注销
-// @Description 用户注销接口
-// @Tags 用户
+// @Tags user
 // @Produce json
 // @Success 200 {object} common.BaseResponse{data=bool}
 // @Router /user/logout [post]
@@ -110,8 +106,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
 
 // Get 根据 ID 获取用户（管理员）
 // @Summary 根据 ID 获取用户（管理员）
-// @Description 根据用户 ID 获取用户信息（管理员）
-// @Tags 用户
+// @Tags user
 // @Produce json
 // @Param id query int64 true "用户 ID"
 // @Success 200 {object} common.BaseResponse{data=model.User}
@@ -136,12 +131,11 @@ func (h *UserHandler) Get(c *gin.Context) {
 
 // GetVO 根据 ID 获取用户信息
 // @Summary 根据 ID 获取用户信息
-// @Description 根据用户 ID 获取用户信息
-// @Tags 用户
+// @Tags user
 // @Produce json
 // @Param id query int64 true "用户 ID"
 // @Success 200 {object} common.BaseResponse{data=model.UserInfo}
-// @Router /user/get [get]
+// @Router /user/get/vo [get]
 func (h *UserHandler) GetVO(c *gin.Context) {
     var req struct {
         ID int64 `form:"id" binding:"required,gt=0"`
@@ -162,8 +156,7 @@ func (h *UserHandler) GetVO(c *gin.Context) {
 
 // Add 创建用户（管理员）
 // @Summary 创建用户（管理员）
-// @Description 创建用户（管理员）
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Param request body model.AddUserRequest true "创建用户信息"
@@ -187,8 +180,7 @@ func (h *UserHandler) Add(c *gin.Context) {
 
 // Delete 删除用户（管理员）
 // @Summary 删除用户（管理员）
-// @Description 删除用户（管理员）
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Param request body model.DeleteRequest true "删除用户信息"
@@ -211,8 +203,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 
 // Update 更新用户（管理员）
 // @Summary 更新用户（管理员）
-// @Description 更新用户（管理员）
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Param request body model.UpdateUserRequest true "更新用户信息"
@@ -235,12 +226,11 @@ func (h *UserHandler) Update(c *gin.Context) {
 
 // ListPageVO 分页查询用户列表（管理员）
 // @Summary 分页查询用户列表（管理员）
-// @Description 分页查询用户列表（管理员）
-// @Tags 用户
+// @Tags user
 // @Produce json
 // @Param request body model.QueryUserRequest true "查询用户信息"
 // @Success 200 {object} common.BaseResponse{data=model.PageResult}
-// @Router /user/list [post]
+// @Router /user/list/page/vo [post]
 func (h *UserHandler) ListPageVO(c *gin.Context) {
     var req model.QueryUserRequest
     if err := c.ShouldBindJSON(&req); err != nil {

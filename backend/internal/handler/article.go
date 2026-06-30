@@ -27,7 +27,15 @@ func NewArticleHandler(svc *service.ArticleService, userSvc *service.UserService
 }
 
 
-
+// Create 创建文章
+// @Summary 创建文章
+// @Description 创建文章
+// @Tags article
+// @Accept json
+// @Produce json
+// @Param request body model.CreateArticleRequest true "创建文章请求体"
+// @Success 200 {object} common.BaseResponse{data=int64}
+// @Router /article/create [post]
 func (h *ArticleHandler) Create(c *gin.Context) {
     var req model.CreateArticleRequest
     if err := c.ShouldBindJSON(&req); err != nil {
@@ -51,6 +59,15 @@ func (h *ArticleHandler) Create(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(taskID))
 }
 
+// GetProgress 获取文章进度
+// @Summary 获取文章进度
+// @Description 获取文章进度
+// @Tags article
+// @Accept json
+// @Produce json
+// @Param taskId path string true "文章 ID"
+// @Success 200 {string} string "文章进度"
+// @Router /article/progress/{taskId} [get]
 func (h *ArticleHandler) GetProgress(c *gin.Context) {
     taskID := c.Param("taskId")
     // ... 权限校验 ...
@@ -81,6 +98,15 @@ func (h *ArticleHandler) GetProgress(c *gin.Context) {
     })
 }
 
+// Get 获取文章
+// @Summary 获取文章
+// @Description 获取文章
+// @Tags article
+// @Accept json
+// @Produce json
+// @Param taskId path string true "文章 ID"
+// @Success 200 {object} common.BaseResponse{data=model.ArticleInfo}
+// @Router /article/{taskId} [get]
 func (h *ArticleHandler) Get(c *gin.Context) {
     taskID := c.Param("taskId")
     session := sessions.Default(c)
@@ -98,6 +124,15 @@ func (h *ArticleHandler) Get(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(article))
 }
 
+// List 分页查询文章列表
+// @Summary 分页查询文章列表
+// @Description 分页查询文章列表
+// @Tags article
+// @Accept json
+// @Produce json
+// @Param request body model.QueryArticleRequest true "查询文章列表请求体"
+// @Success 200 {object} common.BaseResponse{data=model.ArticlePage}
+// @Router /article/list [post]
 func (h *ArticleHandler) List(c *gin.Context) {
     var req model.QueryArticleRequest
     if err := c.ShouldBindJSON(&req); err != nil {
@@ -119,6 +154,15 @@ func (h *ArticleHandler) List(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(page))
 }
 
+// Delete 删除文章
+// @Summary 删除文章
+// @Description 删除文章
+// @Tags article
+// @Accept json
+// @Produce json
+// @Param request body model.DeleteRequest true "删除文章请求体"
+// @Success 200 {object} common.BaseResponse{data=bool}
+// @Router /article/delete [post]
 func (h *ArticleHandler) Delete(c *gin.Context) {
     var req model.DeleteRequest
     if err := c.ShouldBindJSON(&req); err != nil {

@@ -7,19 +7,67 @@ declare namespace API {
     userRole?: string
   }
 
+  type ArticleInfo = {
+    completedTime?: string
+    content?: string
+    createTime?: string
+    errorMessage?: string
+    fullContent?: string
+    id?: number
+    images?: ImageResult[]
+    mainTitle?: string
+    outline?: OutlineSection[]
+    status?: string
+    subTitle?: string
+    taskId?: string
+    topic?: string
+    userId?: number
+  }
+
+  type ArticlePage = {
+    pageNumber?: number
+    pageSize?: number
+    records?: ArticleInfo[]
+    totalPage?: number
+    totalRow?: number
+  }
+
   type BaseResponse = {
     code?: number
     data?: any
     message?: string
   }
 
+  type CreateArticleRequest = {
+    topic: string
+  }
+
   type DeleteRequest = {
     id: number
+  }
+
+  type getArticleProgressTaskIdParams = {
+    /** 文章 ID */
+    taskId: string
+  }
+
+  type getArticleTaskIdParams = {
+    /** 文章 ID */
+    taskId: string
   }
 
   type getUserGetParams = {
     /** 用户 ID */
     id: number
+  }
+
+  type ImageResult = {
+    description?: string
+    keywords?: string
+    method?: string
+    position?: number
+    sectionTitle?: string
+    url?: string
   }
 
   type LoginRequest = {
@@ -41,11 +89,24 @@ declare namespace API {
     vipTime?: string
   }
 
+  type OutlineSection = {
+    points?: string[]
+    section?: number
+    title?: string
+  }
+
   type PageResult = {
     pageNum?: number
     pageSize?: number
     records?: any
     total?: number
+  }
+
+  type QueryArticleRequest = {
+    pageNum?: number
+    pageSize?: number
+    status?: string
+    userId?: number
   }
 
   type QueryUserRequest = {
@@ -78,6 +139,7 @@ declare namespace API {
     createTime?: string
     editTime?: string
     id?: number
+    quota?: number
     updateTime?: string
     userAccount?: string
     userAvatar?: string

@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	docs "github.com/romeokeita231/Article_Generator/docs"
 	"github.com/romeokeita231/Article_Generator/internal/app"
 	"github.com/romeokeita231/Article_Generator/internal/common"
 	"github.com/romeokeita231/Article_Generator/internal/config"
 	"github.com/romeokeita231/Article_Generator/internal/middleware"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-	"log"
-	"net/http"
+	
 )
 
 // @title AI Article Generator API

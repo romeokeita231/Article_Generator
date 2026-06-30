@@ -123,3 +123,12 @@ type ImageResult struct {
     SectionTitle string `json:"sectionTitle"`
     Description  string `json:"description"`
 }
+
+// ArticlePage 文章分页结果
+type ArticlePage struct {
+    PageNumber int64          `json:"pageNumber"`
+    PageSize   int64          `json:"pageSize"`
+    TotalRow   int64          `json:"totalRow"`
+    TotalPage  int64          `json:"totalPage"`
+    Records    []*ArticleInfo `json:"records"`
+}

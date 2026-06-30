@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { postUserRegister } from '@/api/userHandler.ts'
+import { postUserRegister } from '@/api/userHandler'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
 

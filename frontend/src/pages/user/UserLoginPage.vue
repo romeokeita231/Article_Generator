@@ -59,7 +59,7 @@
 
 <script lang="ts" setup>
 import { reactive } from 'vue'
-import { postUserLogin } from '@/api/userHandler.ts'
+import { postUserLogin } from '@/api/userHandler'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'

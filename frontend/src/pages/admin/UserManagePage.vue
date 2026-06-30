@@ -44,7 +44,7 @@
 </template>
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { postUserOpenApiDelete, postUserList } from '@/api/userHandler.ts'
+import { postUserOpenApiDelete, postUserList } from '@/api/userHandler'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 
