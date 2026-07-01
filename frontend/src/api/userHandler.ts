@@ -29,13 +29,13 @@ export async function postUserOpenApiDelete(
   })
 }
 
-/** 根据 ID 获取用户信息 GET /user/get */
+/** 根据 ID 获取用户（管理员） GET /user/get */
 export async function getUserGet(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getUserGetParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponse & { data?: API.UserInfo }>('/user/get', {
+  return request<API.BaseResponse & { data?: API.User }>('/user/get', {
     method: 'GET',
     params: {
       ...params,
@@ -44,9 +44,27 @@ export async function getUserGet(
   })
 }
 
-/** 分页查询用户列表（管理员） POST /user/list */
-export async function postUserList(body: API.QueryUserRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponse & { data?: API.PageResult }>('/user/list', {
+/** 根据 ID 获取用户信息 GET /user/get/vo */
+export async function getUserGetVo(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getUserGetVoParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponse & { data?: API.UserInfo }>('/user/get/vo', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
+/** 分页查询用户列表（管理员） POST /user/list/page/vo */
+export async function postUserListPageVo(
+  body: API.QueryUserRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponse & { data?: API.PageResult }>('/user/list/page/vo', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -56,7 +74,7 @@ export async function postUserList(body: API.QueryUserRequest, options?: { [key:
   })
 }
 
-/** 获取当前登录用户 GET /user/login */
+/** 用户登录 GET /user/login */
 export async function getUserLogin(options?: { [key: string]: any }) {
   return request<API.BaseResponse & { data?: API.LoginUser }>('/user/login', {
     method: 'GET',

@@ -39,6 +39,10 @@ declare namespace API {
   }
 
   type CreateArticleRequest = {
+    /** 允许的配图方式，为空表示支持所有 */
+    enabledImageMethods?: string[]
+    /** 文章风格，允许为空 */
+    style?: string
     topic: string
   }
 
@@ -61,10 +65,16 @@ declare namespace API {
     id: number
   }
 
+  type getUserGetVoParams = {
+    /** 用户 ID */
+    id: number
+  }
+
   type ImageResult = {
     description?: string
     keywords?: string
     method?: string
+    placeholderID?: string
     position?: number
     sectionTitle?: string
     url?: string

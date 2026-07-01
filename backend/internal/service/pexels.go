@@ -6,13 +6,25 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"github.com/romeokeita231/Article_Generator/internal/common"
 	"github.com/romeokeita231/Article_Generator/internal/config"
+	"github.com/romeokeita231/Article_Generator/internal/model"
 )
 
 // PexelsService Pexels 图片检索服务
 type PexelsService struct {
     apiKey string
     client *http.Client
+}
+
+// GetMethod 返回方法名
+func (s *PexelsService) GetMethod() string {
+	return common.ImageMethodPexels
+}
+
+// IsAvailable 是否可用
+func (s *PexelsService) IsAvailable() bool {
+	return s.apiKey != ""
 }
 
 func NewPexelsService(cfg *config.Config) *PexelsService {
@@ -45,6 +57,15 @@ func (s *PexelsService) SearchImage(keywords string) (string, error) {
         return "", fmt.Errorf("no image found")
     }
     return result.Photos[0].Src.Large, nil
+}
+
+// GetImageData 获取图片数据（Pexels 是检索类服务，使用 SearchImage）
+func (s *PexelsService) GetImageData(req *model.ImageRequest) (*model.ImageData, error) {
+	url, err := s.SearchImage(req.Keywords)
+	if err != nil {
+		return nil, err
+	}
+	return model.FromURL(url), nil
 }
 
 // GetFallbackImage 获取降级图片（Picsum）

@@ -2,7 +2,7 @@
 /* eslint-disable */
 import request from '@/request'
 
-/** 获取文章  GET /article/${param0} */
+/** 获取文章 GET /article/${param0} */
 export async function getArticleTaskId(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getArticleTaskIdParams,
@@ -16,7 +16,7 @@ export async function getArticleTaskId(
   })
 }
 
-/** 创建文章  POST /article/create */
+/** 创建文章 POST /article/create */
 export async function postArticleCreate(
   body: API.CreateArticleRequest,
   options?: { [key: string]: any }
@@ -31,7 +31,7 @@ export async function postArticleCreate(
   })
 }
 
-/** 删除文章  POST /article/delete */
+/** 删除文章 POST /article/delete */
 export async function postArticleOpenApiDelete(
   body: API.DeleteRequest,
   options?: { [key: string]: any }
@@ -46,7 +46,7 @@ export async function postArticleOpenApiDelete(
   })
 }
 
-/** 分页查询文章列表  POST /article/list */
+/** 分页查询文章列表 POST /article/list */
 export async function postArticleList(
   body: API.QueryArticleRequest,
   options?: { [key: string]: any }
@@ -61,7 +61,7 @@ export async function postArticleList(
   })
 }
 
-/** 获取文章进度  GET /article/progress/${param0} */
+/** 获取文章进度 GET /article/progress/${param0} */
 export async function getArticleProgressTaskId(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getArticleProgressTaskIdParams,

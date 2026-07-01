@@ -27,9 +27,8 @@ func NewArticleHandler(svc *service.ArticleService, userSvc *service.UserService
 }
 
 
-// Create 创建文章
+// Create
 // @Summary 创建文章
-// @Description 创建文章
 // @Tags article
 // @Accept json
 // @Produce json
@@ -40,6 +39,12 @@ func (h *ArticleHandler) Create(c *gin.Context) {
     var req model.CreateArticleRequest
     if err := c.ShouldBindJSON(&req); err != nil {
         c.JSON(http.StatusOK, common.Error(common.ErrParams))
+        return
+    }
+
+    // 校验风格参数（允许为空）
+    if !common.IsValidArticleStyle(req.Style) {
+        c.JSON(http.StatusOK, common.Error(common.ErrParams.WithMessage("无效的文章风格")))
         return
     }
 
@@ -59,9 +64,8 @@ func (h *ArticleHandler) Create(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(taskID))
 }
 
-// GetProgress 获取文章进度
+// GetProgress
 // @Summary 获取文章进度
-// @Description 获取文章进度
 // @Tags article
 // @Accept json
 // @Produce json
@@ -98,9 +102,8 @@ func (h *ArticleHandler) GetProgress(c *gin.Context) {
     })
 }
 
-// Get 获取文章
+// Get
 // @Summary 获取文章
-// @Description 获取文章
 // @Tags article
 // @Accept json
 // @Produce json
@@ -124,9 +127,8 @@ func (h *ArticleHandler) Get(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(article))
 }
 
-// List 分页查询文章列表
+// List
 // @Summary 分页查询文章列表
-// @Description 分页查询文章列表
 // @Tags article
 // @Accept json
 // @Produce json
@@ -154,9 +156,8 @@ func (h *ArticleHandler) List(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(page))
 }
 
-// Delete 删除文章
+// Delete
 // @Summary 删除文章
-// @Description 删除文章
 // @Tags article
 // @Accept json
 // @Produce json

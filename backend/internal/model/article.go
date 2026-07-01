@@ -22,6 +22,8 @@ type Article struct {
     CompletedTime *time.Time `gorm:"column:completedTime" json:"completedTime"`
     UpdateTime    time.Time  `gorm:"column:updateTime;autoUpdateTime" json:"updateTime"`
     IsDelete      int        `gorm:"column:isDelete;default:0" json:"-"`
+    Style               string `gorm:"column:style" json:"style"`
+    EnabledImageMethods string `gorm:"column:enabledImageMethods;type:text" json:"enabledImageMethods"`
 }
 
 func (Article) TableName() string {
@@ -86,6 +88,7 @@ type ArticleState struct {
     FullContent       string             `json:"fullContent"`
     ImageRequirements []ImageRequirement `json:"imageRequirements"`
     Images            []ImageResult      `json:"images"`
+    ContentWithPlaceholders string   `json:"contentWithPlaceholders"`
 }
 
 // TitleResult 标题结果（智能体1输出）
@@ -111,7 +114,10 @@ type ImageRequirement struct {
     Position     int    `json:"position"`
     Type         string `json:"type"`
     SectionTitle string `json:"sectionTitle"`
+    ImageSource   string `json:"imageSource"` 
     Keywords     string `json:"keywords"`
+    Prompt        string `json:"prompt"`        
+    PlaceholderID string `json:"placeholderId"` 
 }
 
 // ImageResult 配图结果（智能体5输出）
@@ -122,6 +128,7 @@ type ImageResult struct {
     Keywords     string `json:"keywords"`
     SectionTitle string `json:"sectionTitle"`
     Description  string `json:"description"`
+    PlaceholderID string `json:"placeholderID"`
 }
 
 // ArticlePage 文章分页结果

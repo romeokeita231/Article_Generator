@@ -2,7 +2,7 @@
 
 </template>
 <script lang="ts">
-import { getArticleTaskId, postArticleList, postArticleOpenApiDelete } from '@/api/articleHanlder'
+import { getArticleTaskId, postArticleList, postArticleOpenApiDelete } from '@/api/articleHandler'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import dayjs, { type Dayjs } from 'dayjs'

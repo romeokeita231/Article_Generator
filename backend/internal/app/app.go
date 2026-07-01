@@ -2,16 +2,18 @@ package app
 
 import (
 	"fmt"
+	"log"
+	
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
 
 	"github.com/romeokeita231/Article_Generator/internal/common"
 	"github.com/romeokeita231/Article_Generator/internal/config"
 	"github.com/romeokeita231/Article_Generator/internal/handler"
 	"github.com/romeokeita231/Article_Generator/internal/service"
 	"github.com/romeokeita231/Article_Generator/internal/store"
+
 )
 
 // App 应用程序
@@ -20,9 +22,9 @@ type App struct {
 	DB     *gorm.DB
 
 	// Handlers
-	UserHandler   *handler.UserHandler
-    ArticleHandler *handler.ArticleHandler
-	HealthHandler *handler.HealthHandler
+	UserHandler    *handler.UserHandler
+	ArticleHandler *handler.ArticleHandler
+	HealthHandler  *handler.HealthHandler
 
 	// Services (用于中间件)
 	UserService *service.UserService
@@ -39,31 +41,64 @@ func New(cfg *config.Config) (*App, error) {
 	// 初始化各层
 	userStore := store.NewUserStore(db)
 	articleStore := store.NewArticleStore(db)
+
+	// 初始化 SSE 管理器
 	sseManager := common.NewSSEManager()
 
+	// 初始化服务层
 	userService := service.NewUserService(userStore)
 	quotaService := service.NewQuotaService(userStore)
+
+	// COS 服务（判断是否已配置）
+	cosEnabled := cfg.COS.Bucket != "" && cfg.COS.SecretID != "" && cfg.COS.SecretKey != ""
+	var cosService *service.CosService
+	if cosEnabled {
+		cosService = service.NewCosService(cfg.COS)
+	}
+
+	// 初始化所有图片服务
 	pexelsService := service.NewPexelsService(cfg)
-	cosService := service.NewCosService()
+	iconifyService := service.NewIconifyService(cfg.Iconify)
+	mermaidService := service.NewMermaidService(cfg.Mermaid)
+	nanoBananaService := service.NewNanoBananaService(cfg.NanoBanana)
+	svgDiagramService := service.NewSVGDiagramService(cfg.SVGDiagram, cfg.AI)
+	emojiPackService := service.NewEmojiPackService(cfg.EmojiPack)
+	picsumService := service.NewPicsumService() // 降级服务
 
-    
-	userHandler := handler.NewUserHandler(userService)
-	healthHandler := handler.NewHealthHandler()
+	// 初始化策略并注册所有服务
+	imageStrategy := service.NewImageServiceStrategy(cosService, cosEnabled)
+	imageStrategy.RegisterService(pexelsService)
+	imageStrategy.RegisterService(iconifyService)
+	imageStrategy.RegisterService(mermaidService)
+	imageStrategy.RegisterService(nanoBananaService)
+	imageStrategy.RegisterService(svgDiagramService)
+	imageStrategy.RegisterService(emojiPackService)
+	imageStrategy.RegisterService(picsumService)
 
-	agentService, err := service.NewArticleAgentService(cfg, pexelsService, cosService, sseManager)
+	log.Println("图片服务策略初始化完成，已注册 7 个图片服务（含降级服务）")
+
+	// 智能体服务（注入 agentLogService）
+	agentService, err := service.NewArticleAgentService(cfg, imageStrategy, sseManager)
 	if err != nil {
 		return nil, fmt.Errorf("init agent service: %w", err)
 	}
 
-    articleService := service.NewArticleService(articleStore, agentService, quotaService, sseManager)
+
+
+	articleService := service.NewArticleService(articleStore, agentService, quotaService, sseManager)
+
+	// 处理器层
+	userHandler := handler.NewUserHandler(userService)
+	articleHandler := handler.NewArticleHandler(articleService, userService, sseManager)
+	healthHandler := handler.NewHealthHandler()
 
 	return &App{
-		Config:        cfg,
-		DB:            db,
-		UserHandler:   userHandler,
-        ArticleHandler: handler.NewArticleHandler(articleService, userService, sseManager),
-		HealthHandler: healthHandler,
-		UserService:   userService,
+		Config:         cfg,
+		DB:             db,
+		UserHandler:    userHandler,
+		ArticleHandler: articleHandler,
+		HealthHandler:  healthHandler,
+		UserService:    userService,
 	}, nil
 }
 

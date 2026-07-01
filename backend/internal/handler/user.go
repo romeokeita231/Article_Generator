@@ -22,7 +22,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 }
 
 
-// Register 用户注册
+// Register
 // @Summary 用户注册
 // @Tags user
 // @Accept json
@@ -46,7 +46,7 @@ func (h *UserHandler) Register(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(userID))
 }
 
-// Login 用户登录
+// Login 
 // @Summary 用户登录
 // @Tags user
 // @Accept json
@@ -71,8 +71,8 @@ func (h *UserHandler) Login(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(loginUser))
 }
 
-// GetLoginUser 获取当前登录用户
-// @Summary 获取当前登录用户
+// GetLoginUser
+// @Summary 用户登录
 // @Tags user
 // @Produce json
 // @Success 200 {object} common.BaseResponse{data=model.LoginUser}
@@ -88,7 +88,7 @@ func (h *UserHandler) GetLoginUser(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(user.ToLoginUser()))
 }
 
-// Logout 用户注销
+// Logout
 // @Summary 用户注销
 // @Tags user
 // @Produce json
@@ -104,7 +104,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(true))
 }
 
-// Get 根据 ID 获取用户（管理员）
+// Get
 // @Summary 根据 ID 获取用户（管理员）
 // @Tags user
 // @Produce json
@@ -129,7 +129,7 @@ func (h *UserHandler) Get(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(user))
 }
 
-// GetVO 根据 ID 获取用户信息
+// GetVO
 // @Summary 根据 ID 获取用户信息
 // @Tags user
 // @Produce json
@@ -154,7 +154,7 @@ func (h *UserHandler) GetVO(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(user.ToUserInfo()))
 }
 
-// Add 创建用户（管理员）
+// Add
 // @Summary 创建用户（管理员）
 // @Tags user
 // @Accept json
@@ -178,7 +178,7 @@ func (h *UserHandler) Add(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(userID))
 }
 
-// Delete 删除用户（管理员）
+// Delete
 // @Summary 删除用户（管理员）
 // @Tags user
 // @Accept json
@@ -201,7 +201,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(true))
 }
 
-// Update 更新用户（管理员）
+// Update
 // @Summary 更新用户（管理员）
 // @Tags user
 // @Accept json
@@ -224,7 +224,7 @@ func (h *UserHandler) Update(c *gin.Context) {
     c.JSON(http.StatusOK, common.Success(true))
 }
 
-// ListPageVO 分页查询用户列表（管理员）
+// ListPageVO
 // @Summary 分页查询用户列表（管理员）
 // @Tags user
 // @Produce json

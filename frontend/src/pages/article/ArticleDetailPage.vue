@@ -48,7 +48,7 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getArticleTaskId } from '@/api/articleHanlder'
+import { getArticleTaskId } from '@/api/articleHandler'
 import { marked } from 'marked'
 
 

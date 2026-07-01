@@ -58,6 +58,58 @@
             <div class="input-area">
               <a-textarea v-model:value="topic" placeholder="请输入您想创作的文章选题，例如：2026年AI如何改变职场" :rows="6" :maxlength="500"
                 show-count class="topic-textarea" />
+
+              <!-- 文章风格选择 -->
+              <div class="style-section">
+                <div class="section-header">
+                  <span class="section-title">文章风格</span>
+
+                  <span class="section-tip">（不选择使用默认风格）</span>
+
+                </div>
+
+                <a-radio-group v-model:value="selectedStyle" class="style-group">
+                  <a-radio value="">默认</a-radio>
+
+                  <a-radio value="tech">科技风格</a-radio>
+
+                  <a-radio value="emotional">情感风格</a-radio>
+
+                  <a-radio value="educational">教育风格</a-radio>
+
+                  <a-radio value="humorous">轻松幽默</a-radio>
+
+                </a-radio-group>
+
+              </div>
+
+              <!-- 配图方式选择 -->
+              <div class="image-methods-section">
+                <div class="section-header">
+                  <span class="section-title">配图方式</span>
+
+                  <span class="section-tip">（不选择表示支持所有方式）</span>
+
+                </div>
+
+                <a-checkbox-group v-model:value="selectedImageMethods" class="methods-group">
+                  <a-checkbox value="PEXELS">Pexels</a-checkbox>
+
+                  <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
+
+                  <a-checkbox value="MERMAID">Mermaid</a-checkbox>
+
+                  <a-checkbox value="ICONIFY">Iconify</a-checkbox>
+
+                  <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
+
+                  <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
+
+                </a-checkbox-group>
+
+              </div>
+
+
               <a-button type="primary" size="large" :loading="isCreating" :disabled="!topic.trim() || !hasQuota"
                 @click="startCreate" class="create-btn">
                 <template #icon>
@@ -338,7 +390,7 @@ import {
   CheckCircleFilled, CopyOutlined, EyeOutlined, RedoOutlined,
   // ... 其他图标
 } from '@ant-design/icons-vue'
-import { postArticleCreate } from '@/api/articleHanlder'
+import { postArticleCreate } from '@/api/articleHandler'
 import { connectSSE, closeSSE, type SSEMessage } from '@/utils/sse'
 import { marked } from 'marked'
 
@@ -367,6 +419,8 @@ const exampleTopics = [
 
 // 页面状态
 const topic = ref('')
+const selectedStyle = ref('')  // 选中的文章风格（空字符串表示默认）
+const selectedImageMethods = ref<string[]>([])  // 选中的配图方式（空数组表示全部）
 const isCreating = ref(false)
 const isCompleted = ref(false)
 const isStreaming = ref(false)
@@ -472,8 +526,14 @@ const startCreate = async () => {
 
   try {
     // 创建任务
-    const res = await postArticleCreate({ topic: topic.value })
+    const res = await postArticleCreate({
+      topic: topic.value,
+      style: selectedStyle.value || undefined,
+      enabledImageMethods: selectedImageMethods.value.length > 0 ? selectedImageMethods.value : undefined
+
+    })
     taskId.value = res.data.data
+
 
     // 建立 SSE 连接
     eventSource = connectSSE(taskId.value, {
@@ -595,6 +655,8 @@ const viewArticle = () => {
 // 重新创作
 const resetCreate = () => {
   topic.value = ''
+  selectedStyle.value = ''  // 重置风格
+  selectedImageMethods.value = []  // 重置配图方式
   isCreating.value = false
   isCompleted.value = false
   isStreaming.value = false
@@ -1457,9 +1519,11 @@ onBeforeUnmount(() => {
 
       &.error {
         background: rgba(239, 68, 68, 0.05);
+
         .log-time {
           color: var(--color-error);
         }
+
         .log-message {
           color: var(--color-error);
         }
@@ -1618,18 +1682,38 @@ onBeforeUnmount(() => {
 
 /* 动画 */
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* 加载阶段样式 */
@@ -1676,6 +1760,7 @@ onBeforeUnmount(() => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

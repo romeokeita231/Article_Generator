@@ -17,7 +17,6 @@ const docTemplate = `{
     "paths": {
         "/article/create": {
             "post": {
-                "description": "创建文章",
                 "consumes": [
                     "application/json"
                 ],
@@ -64,7 +63,6 @@ const docTemplate = `{
         },
         "/article/delete": {
             "post": {
-                "description": "删除文章",
                 "consumes": [
                     "application/json"
                 ],
@@ -110,7 +108,6 @@ const docTemplate = `{
         },
         "/article/list": {
             "post": {
-                "description": "分页查询文章列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -156,7 +153,6 @@ const docTemplate = `{
         },
         "/article/progress/{taskId}": {
             "get": {
-                "description": "获取文章进度",
                 "consumes": [
                     "application/json"
                 ],
@@ -188,7 +184,6 @@ const docTemplate = `{
         },
         "/article/{taskId}": {
             "get": {
-                "description": "获取文章",
                 "consumes": [
                     "application/json"
                 ],
@@ -473,7 +468,7 @@ const docTemplate = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "获取当前登录用户",
+                "summary": "用户登录",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -780,6 +775,17 @@ const docTemplate = `{
                 "topic"
             ],
             "properties": {
+                "enabledImageMethods": {
+                    "description": "允许的配图方式，为空表示支持所有",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "style": {
+                    "description": "文章风格，允许为空",
+                    "type": "string"
+                },
                 "topic": {
                     "type": "string"
                 }
@@ -806,6 +812,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "method": {
+                    "type": "string"
+                },
+                "placeholderID": {
                     "type": "string"
                 },
                 "position": {

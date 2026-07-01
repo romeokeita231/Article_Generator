@@ -18,13 +18,11 @@ import (
 // ArticleAgentService 文章智能体编排服务
 type ArticleAgentService struct {
     llm        llms.Model
-    pexels     *PexelsService
-    cos        *CosService
+    imageStrategy *ImageServiceStrategy // 替换原来的 pexels + cos
     sseManager *common.SSEManager
 }
 
-func NewArticleAgentService(cfg *config.Config, pexels *PexelsService,
-    cos *CosService, sseManager *common.SSEManager) (*ArticleAgentService, error) {
+func NewArticleAgentService(cfg *config.Config, imageStrategy *ImageServiceStrategy, sseManager *common.SSEManager) (*ArticleAgentService, error) {
 
     llm, err := openai.New(
         openai.WithToken(cfg.AI.DashScope.APIKey),
@@ -36,7 +34,9 @@ func NewArticleAgentService(cfg *config.Config, pexels *PexelsService,
     }
 
     return &ArticleAgentService{
-        llm: llm, pexels: pexels, cos: cos, sseManager: sseManager,
+        llm: llm, 
+        imageStrategy: imageStrategy, 
+        sseManager: sseManager,
     }, nil
 }
 
@@ -163,7 +163,7 @@ func (s *ArticleAgentService) agent3GenerateContent(ctx context.Context, state *
 }
 
 func (s *ArticleAgentService) agent4AnalyzeImageRequirements(ctx context.Context, state *model.ArticleState) error {
-    prompt := strings.ReplaceAll(common.Agent4ImagePrompt, "{mainTitle}", state.Title.MainTitle)
+    prompt := strings.ReplaceAll(common.Agent4ImageRequirementsPrompt, "{mainTitle}", state.Title.MainTitle)
     prompt = strings.ReplaceAll(prompt, "{content}", state.Content)
 
     content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
@@ -185,23 +185,25 @@ func (s *ArticleAgentService) agent5GenerateImages(ctx context.Context, state *m
     var imageResults []model.ImageResult
 
     for _, req := range state.ImageRequirements {
-        imageURL, err := s.pexels.SearchImage(req.Keywords)
-        method := "PEXELS"
+        imageRequest := &model.ImageRequest{
+            Keywords: req.Keywords,
+            Prompt:   req.Prompt,
+            Position: req.Position,
+            Type:     req.Type,
+        }
 
+        // 通过策略选择器获取图片并上传到 COS
+        result, err := s.imageStrategy.GetImageAndUpload(req.ImageSource, imageRequest)
         if err != nil {
-            imageURL = s.pexels.GetFallbackImage(req.Position)
-            method = "PICSUM"
+            log.Printf("智能体5：获取图片失败, position=%d, error=%v", req.Position, err)
+            continue // 失败时跳过，不中断整个流程
         }
 
-        finalURL := s.cos.UseDirectURL(imageURL)
-        result := model.ImageResult{
-            Position: req.Position, URL: finalURL, Method: method,
-            Keywords: req.Keywords, SectionTitle: req.SectionTitle, Description: req.Type,
-        }
+        imageResult := s.buildImageResult(&req, result.URL, result.Method)
+        imageResults = append(imageResults, imageResult)
 
-        imageResults = append(imageResults, result)
         s.sendMessage(state.TaskID, map[string]interface{}{
-            "type": "IMAGE_COMPLETE", "image": result,
+            "type": "IMAGE_COMPLETE", "image": imageResult,
         })
     }
 
@@ -209,44 +211,43 @@ func (s *ArticleAgentService) agent5GenerateImages(ctx context.Context, state *m
     return nil
 }
 
+// buildImageResult 构建配图结果对象
+func (s *ArticleAgentService) buildImageResult(req *model.ImageRequirement, cosURL, method string) model.ImageResult {
+	return model.ImageResult{
+		Position:      req.Position,
+		URL:           cosURL,
+		Method:        method,
+		Keywords:      req.Keywords,
+		SectionTitle:  req.SectionTitle,
+		Description:   req.Type,
+		PlaceholderID: req.PlaceholderID,
+	}
+}
+
 func (s *ArticleAgentService) mergeImagesIntoContent(state *model.ArticleState) {
+    // 使用包含占位符的正文（Agent4 已在正文中预埋好占位符）
+    content := state.ContentWithPlaceholders
+
     if len(state.Images) == 0 {
-        state.FullContent = state.Content
+        state.FullContent = content
         return
     }
 
-    var fullContent strings.Builder
+    fullContent := content
 
-    // 在正文最前面插入封面图（position=1）
-    for _, img := range state.Images {
-        if img.Position == 1 {
-            fullContent.WriteString(fmt.Sprintf("![封面图](%s)\n\n", img.URL))
-            break
+    
+    // 遍历所有配图，根据占位符替换为实际图片
+    for _, image := range state.Images {
+        if image.PlaceholderID != "" && strings.Contains(fullContent, image.PlaceholderID) {
+            imageMarkdown := fmt.Sprintf("![%s](%s)", image.Description, image.URL)
+            fullContent = strings.ReplaceAll(fullContent, image.PlaceholderID, imageMarkdown)
         }
     }
 
-    lines := strings.Split(state.Content, "\n")
-    for _, line := range lines {
-        fullContent.WriteString(line + "\n")
-        if strings.HasPrefix(line, "## ") {
-            sectionTitle := strings.TrimSpace(strings.TrimPrefix(line, "## "))
-            s.insertImageAfterSection(&fullContent, state.Images, sectionTitle)
-        }
-    }
-
-    state.FullContent = fullContent.String()
+    state.FullContent = fullContent
 }
 
-func (s *ArticleAgentService) insertImageAfterSection(
-    fullContent *strings.Builder, images []model.ImageResult, sectionTitle string) {
-    for _, image := range images {
-        if image.Position > 1 && image.SectionTitle != "" &&
-            strings.Contains(sectionTitle, strings.TrimSpace(image.SectionTitle)) {
-            fullContent.WriteString(fmt.Sprintf("\n![%s](%s)\n", image.Description, image.URL))
-            break
-        }
-    }
-}
+
 
 // sendMessage 发送 SSE 消息
 func (s *ArticleAgentService) sendMessage(taskID string, data interface{}) {
