@@ -29,7 +29,7 @@ func NewArticleHandler(svc *service.ArticleService, userSvc *service.UserService
 
 // Create
 // @Summary 创建文章
-// @Tags article
+// @Tags articleHandler
 // @Accept json
 // @Produce json
 // @Param request body model.CreateArticleRequest true "创建文章请求体"
@@ -66,7 +66,7 @@ func (h *ArticleHandler) Create(c *gin.Context) {
 
 // GetProgress
 // @Summary 获取文章进度
-// @Tags article
+// @Tags articleHandler
 // @Accept json
 // @Produce json
 // @Param taskId path string true "文章 ID"
@@ -104,7 +104,7 @@ func (h *ArticleHandler) GetProgress(c *gin.Context) {
 
 // Get
 // @Summary 获取文章
-// @Tags article
+// @Tags articleHandler
 // @Accept json
 // @Produce json
 // @Param taskId path string true "文章 ID"
@@ -129,7 +129,7 @@ func (h *ArticleHandler) Get(c *gin.Context) {
 
 // List
 // @Summary 分页查询文章列表
-// @Tags article
+// @Tags articleHandler
 // @Accept json
 // @Produce json
 // @Param request body model.QueryArticleRequest true "查询文章列表请求体"
@@ -158,7 +158,7 @@ func (h *ArticleHandler) List(c *gin.Context) {
 
 // Delete
 // @Summary 删除文章
-// @Tags article
+// @Tags articleHandler
 // @Accept json
 // @Produce json
 // @Param request body model.DeleteRequest true "删除文章请求体"
@@ -182,4 +182,99 @@ func (h *ArticleHandler) Delete(c *gin.Context) {
         return
     }
     c.JSON(http.StatusOK, common.Success(true))
+}
+
+// ConfirmTitle 
+// @Summary 确认标题并输入补充描述
+// @Tags articleHandler
+// @Accept json
+// @Produce json
+// @Param request body model.ConfirmTitleRequest true "确认标题并输入补充描述请求体"
+// @Success 200 {object} common.BaseResponse
+// @Router /article/confirmTitle [post]
+func (h *ArticleHandler) ConfirmTitle(c *gin.Context) {
+    var req model.ConfirmTitleRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusOK, common.Error(common.ErrParams))
+        return
+    }
+
+    session := sessions.Default(c)
+    user, err := h.userSvc.GetLoginUser(session)
+    if err != nil {
+        handleError(c, err)
+        return
+    }
+
+    isAdmin := user.UserRole == common.AdminRole
+    if err := h.svc.ConfirmTitle(req.TaskID, req.SelectedMainTitle, req.SelectedSubTitle,
+        req.UserDescription, user.ID, isAdmin); err != nil {
+        handleError(c, err)
+        return
+    }
+
+    c.JSON(http.StatusOK, common.Success(nil))
+}
+
+// ConfirmOutline 
+// @Summary 确认大纲
+// @Tags articleHandler
+// @Accept json
+// @Produce json
+// @Param request body model.ConfirmOutlineRequest true "确认大纲请求体"
+// @Success 200 {object} common.BaseResponse
+// @Router /article/confirmOutline [post]
+func (h *ArticleHandler) ConfirmOutline(c *gin.Context) {
+    var req model.ConfirmOutlineRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusOK, common.Error(common.ErrParams))
+        return
+    }
+
+    session := sessions.Default(c)
+    user, err := h.userSvc.GetLoginUser(session)
+    if err != nil {
+        handleError(c, err)
+        return
+    }
+
+    isAdmin := user.UserRole == common.AdminRole
+    if err := h.svc.ConfirmOutline(req.TaskID, req.Outline, user.ID, isAdmin); err != nil {
+        handleError(c, err)
+        return
+    }
+
+    c.JSON(http.StatusOK, common.Success(nil))
+}
+
+// AiModifyOutline 
+// @Summary 使用 AI 修改大纲
+// @Tags articleHandler
+// @Accept json
+// @Produce json
+// @Param request body model.AiModifyOutlineRequest true "AI 修改大纲请求体"
+// @Success 200 {object} common.BaseResponse{data=model.OutlineSection}
+// @Router /article/aiModifyOutline [post]
+func (h *ArticleHandler) AiModifyOutline(c *gin.Context) {
+    var req model.AiModifyOutlineRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusOK, common.Error(common.ErrParams))
+        return
+    }
+
+    session := sessions.Default(c)
+    user, err := h.userSvc.GetLoginUser(session)
+    if err != nil {
+        handleError(c, err)
+        return
+    }
+
+    isAdmin := user.UserRole == common.AdminRole
+    modifiedOutline, err := h.svc.AiModifyOutline(req.TaskID, req.ModifySuggestion, user.ID, isAdmin)
+    if err != nil {
+        handleError(c, err)
+        return
+    }
+
+    c.JSON(http.StatusOK, common.Success(modifiedOutline))
 }

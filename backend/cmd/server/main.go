@@ -2,17 +2,16 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	docs "github.com/romeokeita231/Article_Generator/docs"
 	"github.com/romeokeita231/Article_Generator/internal/app"
 	"github.com/romeokeita231/Article_Generator/internal/common"
 	"github.com/romeokeita231/Article_Generator/internal/config"
 	"github.com/romeokeita231/Article_Generator/internal/middleware"
-	
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"log"
+	"net/http"
 )
 
 // @title AI Article Generator API
@@ -81,6 +80,7 @@ func main() {
 
 		// 文章路由（需要登录用户权限）
 		userAuth := middleware.AuthCheck(application.UserService, common.UserRole)
+
 		article := api.Group("/article")
 		{
 			article.POST("/create", userAuth, application.ArticleHandler.Create)
@@ -88,6 +88,11 @@ func main() {
 			article.GET("/:taskId", userAuth, application.ArticleHandler.Get)
 			article.POST("/list", userAuth, application.ArticleHandler.List)
 			article.POST("/delete", userAuth, application.ArticleHandler.Delete)
+			
+			article.POST("/confirm-title", userAuth, application.ArticleHandler.ConfirmTitle)
+			article.POST("/confirm-outline", userAuth, application.ArticleHandler.ConfirmOutline)
+			article.POST("/ai-modify-outline", userAuth, application.ArticleHandler.AiModifyOutline)
+
 		}
 
 	}

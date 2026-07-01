@@ -7,20 +7,35 @@ declare namespace API {
     userRole?: string
   }
 
+  type AiModifyOutlineRequest = {
+    modifySuggestion: string
+    taskId: string
+  }
+
   type ArticleInfo = {
     completedTime?: string
     content?: string
     createTime?: string
+    /** 允许的配图方式列表 */
+    enabledImageMethods?: string[]
     errorMessage?: string
     fullContent?: string
     id?: number
     images?: ImageResult[]
     mainTitle?: string
     outline?: OutlineSection[]
+    /** 当前阶段 */
+    phase?: string
     status?: string
+    /** 文章风格 */
+    style?: string
     subTitle?: string
     taskId?: string
+    /** 标题方案列表 */
+    titleOptions?: TitleOption[]
     topic?: string
+    /** 用户补充描述 */
+    userDescription?: string
     userId?: number
   }
 
@@ -36,6 +51,19 @@ declare namespace API {
     code?: number
     data?: any
     message?: string
+  }
+
+  type ConfirmOutlineRequest = {
+    outline: OutlineSection[]
+    taskId: string
+  }
+
+  type ConfirmTitleRequest = {
+    selectedMainTitle: string
+    selectedSubTitle: string
+    taskId: string
+    /** 用户补充描述（可选） */
+    userDescription?: string
   }
 
   type CreateArticleRequest = {
@@ -135,6 +163,11 @@ declare namespace API {
     checkPassword: string
     userAccount: string
     userPassword: string
+  }
+
+  type TitleOption = {
+    mainTitle?: string
+    subTitle?: string
   }
 
   type UpdateUserRequest = {

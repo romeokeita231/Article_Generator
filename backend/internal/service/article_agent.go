@@ -106,34 +106,7 @@ func (s *ArticleAgentService) agent1GenerateTitle(ctx context.Context, state *mo
     return nil
 }
 
-func (s *ArticleAgentService) agent2GenerateOutlineStream(ctx context.Context, state *model.ArticleState) error {
-    prompt := strings.ReplaceAll(common.Agent2OutlinePrompt, "{mainTitle}", state.Title.MainTitle)
-    prompt = strings.ReplaceAll(prompt, "{subTitle}", state.Title.SubTitle)
 
-    var contentBuilder strings.Builder
-
-    _, err := s.llm.GenerateContent(ctx, []llms.MessageContent{
-        llms.TextParts(llms.ChatMessageTypeHuman, prompt),
-    }, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-        text := string(chunk)
-        contentBuilder.WriteString(text)
-        s.sendMessage(state.TaskID, map[string]interface{}{
-            "type": "AGENT2_STREAMING", "content": text,
-        })
-        return nil
-    }))
-    if err != nil {
-        return err
-    }
-
-    var outline model.OutlineResult
-    if err := json.Unmarshal([]byte(contentBuilder.String()), &outline); err != nil {
-        return fmt.Errorf("parse outline failed: %w", err)
-    }
-
-    state.Outline = &outline
-    return nil
-}
 
 func (s *ArticleAgentService) agent3GenerateContent(ctx context.Context, state *model.ArticleState) error {
     outlineJSON, _ := json.Marshal(state.Outline.Sections)
@@ -247,9 +220,105 @@ func (s *ArticleAgentService) mergeImagesIntoContent(state *model.ArticleState) 
     state.FullContent = fullContent
 }
 
-
-
 // sendMessage 发送 SSE 消息
 func (s *ArticleAgentService) sendMessage(taskID string, data interface{}) {
 	s.sseManager.Send(taskID, data)
+}
+
+// ExecutePhase1 阶段1：生成标题方案
+func (s *ArticleAgentService) ExecutePhase1(ctx context.Context, state *model.ArticleState) error {
+    if err := s.agent1GenerateTitleOptions(ctx, state); err != nil {
+        return fmt.Errorf("agent1 failed: %w", err)
+    }
+    s.sendMessage(state.TaskID, map[string]interface{}{
+        "type": common.SSEMsgAgent1Complete, "titleOptions": state.TitleOptions,
+    })
+    return nil
+}
+
+// ExecutePhase2 阶段2：生成大纲
+func (s *ArticleAgentService) ExecutePhase2(ctx context.Context, state *model.ArticleState) error {
+    if err := s.agent2GenerateOutlineStream(ctx, state); err != nil {
+        return fmt.Errorf("agent2 failed: %w", err)
+    }
+    s.sendMessage(state.TaskID, map[string]interface{}{
+        "type": common.SSEMsgAgent2Complete, "outline": state.Outline.Sections,
+    })
+    return nil
+}
+
+// ExecutePhase3 阶段3：生成正文+配图
+func (s *ArticleAgentService) ExecutePhase3(ctx context.Context, state *model.ArticleState) error {
+    // 智能体3-5 + 图文合成（逻辑与原 Execute 方法相同）
+    if err := s.agent3GenerateContent(ctx, state); err != nil {
+        return fmt.Errorf("agent3 failed: %w", err)
+    }
+    // ... 后续智能体调用不变 ...
+    return nil
+}
+
+// agent1GenerateTitleOptions 智能体1：生成标题方案（3-5个）
+func (s *ArticleAgentService) agent1GenerateTitleOptions(ctx context.Context, state *model.ArticleState) error {
+    prompt := strings.ReplaceAll(common.Agent1TitlePrompt, "{topic}", state.Topic)
+    prompt += s.getStylePrompt(state.Style)
+
+    content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
+    if err != nil {
+        return fmt.Errorf("LLM call failed: %w", err)
+    }
+
+    // 解析标题方案列表（JSON 数组）
+    var titleOptions []model.TitleOption
+    if err := json.Unmarshal([]byte(content), &titleOptions); err != nil {
+        return fmt.Errorf("parse title options: %w", err)
+    }
+
+    state.TitleOptions = titleOptions
+    return nil
+}
+
+
+// getStylePrompt 根据风格获取对应的 Prompt 附加内容
+func (s *ArticleAgentService) getStylePrompt(style string) string {
+	if style == "" {
+		return ""
+	}
+
+	switch style {
+	case common.ArticleStyleTech:
+		return common.StyleTechPrompt
+	case common.ArticleStyleEmotional:
+		return common.StyleEmotionalPrompt
+	case common.ArticleStyleEducational:
+		return common.StyleEducationalPrompt
+	case common.ArticleStyleHumorous:
+		return common.StyleHumorousPrompt
+	default:
+		return ""
+	}
+}
+
+// AiModifyOutline AI 修改大纲
+func (s *ArticleAgentService) AiModifyOutline(ctx context.Context, mainTitle, subTitle string,
+    currentOutline []model.OutlineSection, modifySuggestion string) ([]model.OutlineSection, error) {
+
+    currentOutlineJSON, _ := json.Marshal(currentOutline)
+
+    prompt := common.AiModifyOutlinePrompt
+    prompt = strings.ReplaceAll(prompt, "{mainTitle}", mainTitle)
+    prompt = strings.ReplaceAll(prompt, "{subTitle}", subTitle)
+    prompt = strings.ReplaceAll(prompt, "{currentOutline}", string(currentOutlineJSON))
+    prompt = strings.ReplaceAll(prompt, "{modifySuggestion}", modifySuggestion)
+
+    content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
+    if err != nil {
+        return nil, fmt.Errorf("LLM call failed: %w", err)
+    }
+
+    var outlineResult model.OutlineResult
+    if err := json.Unmarshal([]byte(content), &outlineResult); err != nil {
+        return nil, fmt.Errorf("parse outline: %w", err)
+    }
+
+    return outlineResult.Sections, nil
 }

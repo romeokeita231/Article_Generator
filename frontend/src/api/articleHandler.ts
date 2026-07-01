@@ -16,6 +16,51 @@ export async function getArticleTaskId(
   })
 }
 
+/** 使用 AI 修改大纲 POST /article/aiModifyOutline */
+export async function postArticleAiModifyOutline(
+  body: API.AiModifyOutlineRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponse & { data?: API.OutlineSection }>('/article/aiModifyOutline', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 确认大纲 POST /article/confirmOutline */
+export async function postArticleConfirmOutline(
+  body: API.ConfirmOutlineRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponse>('/article/confirmOutline', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 确认标题并输入补充描述 POST /article/confirmTitle */
+export async function postArticleConfirmTitle(
+  body: API.ConfirmTitleRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponse>('/article/confirmTitle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** 创建文章 POST /article/create */
 export async function postArticleCreate(
   body: API.CreateArticleRequest,

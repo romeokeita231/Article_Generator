@@ -45,83 +45,88 @@
 
       <!-- 中间：主内容区 -->
       <main ref="mainContentRef" class="main-content">
-        <!-- 输入状态 -->
-        <div v-if="!isCreating && !isCompleted" class="input-state">
-          <div class="input-card">
-            <div class="input-header">
-              <h1 class="input-title">创作新文章</h1>
+        <!-- 阶段切换（带过渡动画） -->
+        <Transition name="fade-slide" mode="out-in">
+          <!-- 输入状态 -->
+          <div v-if="currentPhase === 'INPUT'" key="input" class="input-state">
 
-              <p class="input-subtitle">输入选题，AI 帮你生成爆款文章</p>
+            <div class="input-card">
+              <div class="input-header">
+                <h1 class="input-title">创作新文章</h1>
 
-            </div>
+                <p class="input-subtitle">输入选题，AI 帮你生成爆款文章</p>
 
-            <div class="input-area">
-              <a-textarea v-model:value="topic" placeholder="请输入您想创作的文章选题，例如：2026年AI如何改变职场" :rows="6" :maxlength="500"
-                show-count class="topic-textarea" />
+              </div>
 
-              <!-- 文章风格选择 -->
-              <div class="style-section">
-                <div class="section-header">
-                  <span class="section-title">文章风格</span>
+              <div class="input-area">
+                <a-textarea v-model:value="topic" placeholder="请输入您想创作的文章选题，例如：2026年AI如何改变职场" :rows="6" :maxlength="500"
+                  show-count class="topic-textarea" />
 
-                  <span class="section-tip">（不选择使用默认风格）</span>
+                <!-- 文章风格选择 -->
+                <div class="style-section">
+                  <div class="section-header">
+                    <span class="section-title">文章风格</span>
+
+                    <span class="section-tip">（不选择使用默认风格）</span>
+
+                  </div>
+
+                  <a-radio-group v-model:value="selectedStyle" class="style-group">
+                    <a-radio value="">默认</a-radio>
+
+                    <a-radio value="tech">科技风格</a-radio>
+
+                    <a-radio value="emotional">情感风格</a-radio>
+
+                    <a-radio value="educational">教育风格</a-radio>
+
+                    <a-radio value="humorous">轻松幽默</a-radio>
+
+                  </a-radio-group>
 
                 </div>
 
-                <a-radio-group v-model:value="selectedStyle" class="style-group">
-                  <a-radio value="">默认</a-radio>
+                <!-- 配图方式选择 -->
+                <div class="image-methods-section">
+                  <div class="section-header">
+                    <span class="section-title">配图方式</span>
 
-                  <a-radio value="tech">科技风格</a-radio>
+                    <span class="section-tip">（不选择表示支持所有方式）</span>
 
-                  <a-radio value="emotional">情感风格</a-radio>
+                  </div>
 
-                  <a-radio value="educational">教育风格</a-radio>
+                  <a-checkbox-group v-model:value="selectedImageMethods" class="methods-group">
+                    <a-checkbox value="PEXELS">Pexels</a-checkbox>
 
-                  <a-radio value="humorous">轻松幽默</a-radio>
+                    <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
 
-                </a-radio-group>
+                    <a-checkbox value="MERMAID">Mermaid</a-checkbox>
 
-              </div>
+                    <a-checkbox value="ICONIFY">Iconify</a-checkbox>
 
-              <!-- 配图方式选择 -->
-              <div class="image-methods-section">
-                <div class="section-header">
-                  <span class="section-title">配图方式</span>
+                    <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
 
-                  <span class="section-tip">（不选择表示支持所有方式）</span>
+                    <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
+
+                  </a-checkbox-group>
 
                 </div>
 
-                <a-checkbox-group v-model:value="selectedImageMethods" class="methods-group">
-                  <a-checkbox value="PEXELS">Pexels</a-checkbox>
 
-                  <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
+                <a-button type="primary" size="large" :loading="isCreating" :disabled="!topic.trim() || !hasQuota"
+                  @click="startCreate" class="create-btn">
+                  <template #icon>
+                    <RocketOutlined />
+                  </template>
 
-                  <a-checkbox value="MERMAID">Mermaid</a-checkbox>
+                  开始创作
+                </a-button>
 
-                  <a-checkbox value="ICONIFY">Iconify</a-checkbox>
+                <div v-if="!hasQuota" class="quota-warning">
+                  <WarningOutlined />
+                  <span>配额已用完，无法创建文章</span>
 
-                  <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
-
-                  <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
-
-                </a-checkbox-group>
-
-              </div>
-
-
-              <a-button type="primary" size="large" :loading="isCreating" :disabled="!topic.trim() || !hasQuota"
-                @click="startCreate" class="create-btn">
-                <template #icon>
-                  <RocketOutlined />
-                </template>
-
-                开始创作
-              </a-button>
-
-              <div v-if="!hasQuota" class="quota-warning">
-                <WarningOutlined />
-                <span>配额已用完，无法创建文章</span>
+                </div>
 
               </div>
 
@@ -129,98 +134,140 @@
 
           </div>
 
-        </div>
 
-
-        <!-- 创作进行中 -->
-        <div v-if="isCreating && !isCompleted" class="creating-state">
-          <!-- 标题预览 -->
-          <div v-if="article.mainTitle" class="preview-header">
-            <h1 class="article-title">{{ article.mainTitle }}</h1>
-
-            <p class="article-subtitle">{{ article.subTitle }}</p>
-
-          </div>
-
-          <!-- 大纲预览（流式解析展示） -->
-          <div v-if="outlineRaw" class="outline-preview">
-            <div class="section-label">
-              <BulbOutlined />
-              <span>文章大纲</span>
-
-              <span v-if="isOutlineStreaming" class="typing-cursor">|</span>
-
-            </div>
-
-            <div class="outline-list">
-              <div v-for="item in parsedOutline" :key="item.section" class="outline-item">
-                <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
-
-                <ul class="outline-points">
-                  <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
-
-                </ul>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <!-- 正文预览（流式输出） -->
-          <div v-if="article.content" class="content-preview">
-            <div v-html="markdownToHtml(article.content)" class="markdown-body"></div>
-
-            <span v-if="isStreaming" class="typing-cursor">|</span>
-
-          </div>
-
-          <!-- 配图进度 -->
-          <div v-if="currentStep === 4 && imageProgress > 0" class="image-progress-box">
-            <div class="progress-header">
-              <PictureOutlined />
-              <span>正在生成配图</span>
-
-            </div>
-
-            <a-progress :percent="imageProgress" status="active" :stroke-color="{ from: '#22C55E', to: '#16A34A' }" />
-            <p class="progress-hint">{{ imageCount }}/{{ totalImages }} 张图片已完成</p>
-
-          </div>
-
-          <!-- 加载占位 -->
-          <div v-if="currentStep === 0 && !article.mainTitle" class="loading-placeholder">
+          <!-- 标题生成中 -->
+          <div v-else-if="currentPhase === 'TITLE_GENERATING'" key="title-generating" class="loading-stage">
             <a-spin size="large" />
-            <p>AI 正在构思标题...</p>
+            <h3>AI 正在生成标题方案...</h3>
+            <p>稍等片刻，即将为您呈现多个精彩标题</p>
+          </div>
+
+          <!-- 标题选择阶段 -->
+          <TitleSelectingStage v-else-if="currentPhase === 'TITLE_SELECTING'" key="title-selecting"
+            :title-options="titleOptions" :loading="confirmLoading" @confirm="handleConfirmTitle" />
+
+          <!-- 大纲生成中（流式展示） -->
+          <div v-else-if="currentPhase === 'OUTLINE_GENERATING'" key="outline-generating"
+            class="outline-generating-state">
+            <!-- 标题预览 -->
+            <div v-if="article.mainTitle" class="preview-header">
+              <h1 class="article-title">{{ article.mainTitle }}</h1>
+              <p class="article-subtitle">{{ article.subTitle }}</p>
+            </div>
+
+            <!-- 大纲流式展示 -->
+            <div class="outline-preview">
+              <div class="section-label">
+                <BulbOutlined />
+                <span>AI 正在规划文章大纲</span>
+                <span class="typing-cursor">|</span>
+              </div>
+              <div v-if="parsedOutline.length > 0" class="outline-list">
+                <div v-for="item in parsedOutline" :key="item.section" class="outline-item fade-in">
+                  <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
+                  <ul class="outline-points">
+                    <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
+                  </ul>
+                </div>
+              </div>
+              <div v-else class="outline-loading">
+                <a-spin />
+                <span>正在构建文章结构...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 大纲编辑阶段 -->
+          <OutlineEditingStage v-else-if="currentPhase === 'OUTLINE_EDITING'" key="outline-editing" :outline="outline"
+            :loading="confirmLoading" :task-id="taskId" @confirm="handleConfirmOutline" />
+
+          <!-- 正文生成阶段 -->
+          <div v-else-if="currentPhase === 'CONTENT_GENERATING'" key="content-generating" class="creating-state">
+            <!-- 标题预览 -->
+            <div v-if="article.mainTitle" class="preview-header">
+              <h1 class="article-title">{{ article.mainTitle }}</h1>
+              <p class="article-subtitle">{{ article.subTitle }}</p>
+            </div>
+
+            <!-- 大纲预览（流式解析展示） -->
+            <div v-if="outlineRaw" class="outline-preview">
+              <div class="section-label">
+                <BulbOutlined />
+                <span>文章大纲</span>
+
+                <span v-if="isOutlineStreaming" class="typing-cursor">|</span>
+
+              </div>
+
+              <div class="outline-list">
+                <div v-for="item in parsedOutline" :key="item.section" class="outline-item">
+                  <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
+
+                  <ul class="outline-points">
+                    <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
+
+                  </ul>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- 正文预览（流式输出） -->
+            <div v-if="article.content" class="content-preview">
+              <div v-html="markdownToHtml(article.content)" class="markdown-body"></div>
+
+              <span v-if="isStreaming" class="typing-cursor">|</span>
+
+            </div>
+
+            <!-- 配图进度 -->
+            <div v-if="currentStep === 4 && imageProgress > 0" class="image-progress-box">
+              <div class="progress-header">
+                <PictureOutlined />
+                <span>正在生成配图</span>
+
+              </div>
+
+              <a-progress :percent="imageProgress" status="active" :stroke-color="{ from: '#22C55E', to: '#16A34A' }" />
+              <p class="progress-hint">{{ imageCount }}/{{ totalImages }} 张图片已完成</p>
+
+            </div>
+
+            <!-- 加载占位 -->
+            <div v-if="currentStep === 0 && !article.mainTitle" class="loading-placeholder">
+              <a-spin size="large" />
+              <p>AI 正在构思标题...</p>
+
+            </div>
 
           </div>
 
-        </div>
 
+          <!-- 创作完成 -->
+          <div v-if="isCompleted" class="completed-state">
+            <div class="success-header">
+              <CheckCircleFilled class="success-icon" />
+              <span>文章创作完成！</span>
 
-        <!-- 创作完成 -->
-        <div v-if="isCompleted" class="completed-state">
-          <div class="success-header">
-            <CheckCircleFilled class="success-icon" />
-            <span>文章创作完成！</span>
+            </div>
+
+            <div class="preview-header">
+              <h1 class="article-title">{{ article.mainTitle }}</h1>
+
+              <p class="article-subtitle">{{ article.subTitle }}</p>
+
+            </div>
+
+            <div class="content-preview">
+              <div v-html="markdownToHtml(article?.fullContent || article?.content || '')" class="markdown-body"></div>
+
+            </div>
 
           </div>
 
-          <div class="preview-header">
-            <h1 class="article-title">{{ article.mainTitle }}</h1>
-
-            <p class="article-subtitle">{{ article.subTitle }}</p>
-
-          </div>
-
-          <div class="content-preview">
-            <div v-html="markdownToHtml(article?.fullContent || article?.content || '')" class="markdown-body"></div>
-
-          </div>
-
-        </div>
-
-
+        </Transition>
       </main>
 
       <!-- 右侧：辅助面板 -->
@@ -390,7 +437,7 @@ import {
   CheckCircleFilled, CopyOutlined, EyeOutlined, RedoOutlined,
   // ... 其他图标
 } from '@ant-design/icons-vue'
-import { postArticleCreate } from '@/api/articleHandler'
+import { postArticleCreate,postArticleConfirmTitle,postArticleConfirmOutline } from '@/api/articleHandler'
 import { connectSSE, closeSSE, type SSEMessage } from '@/utils/sse'
 import { marked } from 'marked'
 
@@ -438,6 +485,19 @@ const outlineRaw = ref('')
 const imageCount = ref(0)
 const totalImages = ref(5)
 const imageProgress = ref(0)
+
+// 阶段状态
+const currentPhase = ref<string>('INPUT')  // INPUT, TITLE_SELECTING, OUTLINE_EDITING, CONTENT_GENERATING, COMPLETED
+
+// 标题方案
+const titleOptions = ref<Array<{ mainTitle: string, subTitle: string }>>([])
+
+// 大纲数据
+const outline = ref<Array<{ section: number, title: string, points: string[] }>>([])
+
+// 确认操作的 loading
+const confirmLoading = ref(false)
+
 
 // 文章数据
 const article = ref<Partial<API.ArticleInfo>>({
@@ -624,6 +684,50 @@ const handleSSEMessage = (msg: SSEMessage) => {
   }
 }
 
+// 确认标题
+const handleConfirmTitle = async (data: {mainTitle: string, subTitle: string, userDescription: string}) => {
+  confirmLoading.value = true
+  try {
+    await postArticleConfirmTitle({
+      taskId: taskId.value,
+      selectedMainTitle: data.mainTitle,
+      selectedSubTitle: data.subTitle,
+      userDescription: data.userDescription
+    })
+    // 保存标题信息，用于大纲生成阶段展示
+    article.value.mainTitle = data.mainTitle
+    article.value.subTitle = data.subTitle
+    // 不直接切换阶段，等待 SSE 消息 OUTLINE_GENERATED
+    message.success('标题已确认，正在生成大纲...')
+  } catch (error) {
+    const err = error as Error
+    message.error(err.message || '确认标题失败')
+  } finally {
+    confirmLoading.value = false
+  }
+}
+
+// 确认大纲
+const handleConfirmOutline = async (outlineData: Array<{section: number, title: string, points: string[]}>) => {
+  confirmLoading.value = true
+  try {
+    await postArticleConfirmOutline({
+      taskId: taskId.value,
+      outline: outlineData
+    })
+    // 更新 outlineRaw 为用户修改后的大纲
+    outlineRaw.value = JSON.stringify({ sections: outlineData })
+    // 不直接切换阶段，等待后端开始生成正文并推送 AGENT3_STREAMING
+    message.success('大纲已确认，正在生成正文...')
+  } catch (error) {
+    const err = error as Error
+    message.error(err.message || '确认大纲失败')
+  } finally {
+    confirmLoading.value = false
+  }
+}
+
+
 // 处理 SSE 错误
 const handleSSEError = (error: Event) => {
   console.error('SSE错误:', error)
@@ -654,24 +758,26 @@ const viewArticle = () => {
 
 // 重新创作
 const resetCreate = () => {
+  currentPhase.value = 'INPUT'
   topic.value = ''
-  selectedStyle.value = ''  // 重置风格
-  selectedImageMethods.value = []  // 重置配图方式
+  selectedStyle.value = ''
+  titleOptions.value = []
+  outline.value = []
   isCreating.value = false
   isCompleted.value = false
   isStreaming.value = false
-  isOutlineStreaming.value = false
   currentStep.value = 0
   imageCount.value = 0
   imageProgress.value = 0
   outlineRaw.value = ''
+  confirmLoading.value = false
   article.value = {
     mainTitle: '',
     subTitle: '',
     content: '',
     fullContent: '',
-    images: [],
   }
+  
 }
 
 // 组件挂载时检查路由参数

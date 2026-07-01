@@ -15,6 +15,117 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/article/aiModifyOutline": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articleHandler"
+                ],
+                "summary": "使用 AI 修改大纲",
+                "parameters": [
+                    {
+                        "description": "AI 修改大纲请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.AiModifyOutlineRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_common.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.OutlineSection"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/article/confirmOutline": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articleHandler"
+                ],
+                "summary": "确认大纲",
+                "parameters": [
+                    {
+                        "description": "确认大纲请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.ConfirmOutlineRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_common.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/article/confirmTitle": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articleHandler"
+                ],
+                "summary": "确认标题并输入补充描述",
+                "parameters": [
+                    {
+                        "description": "确认标题并输入补充描述请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.ConfirmTitleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_common.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/article/create": {
             "post": {
                 "consumes": [
@@ -24,7 +135,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "article"
+                    "articleHandler"
                 ],
                 "summary": "创建文章",
                 "parameters": [
@@ -70,7 +181,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "article"
+                    "articleHandler"
                 ],
                 "summary": "删除文章",
                 "parameters": [
@@ -115,7 +226,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "article"
+                    "articleHandler"
                 ],
                 "summary": "分页查询文章列表",
                 "parameters": [
@@ -160,7 +271,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "article"
+                    "articleHandler"
                 ],
                 "summary": "获取文章进度",
                 "parameters": [
@@ -191,7 +302,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "article"
+                    "articleHandler"
                 ],
                 "summary": "获取文章",
                 "parameters": [
@@ -254,7 +365,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "创建用户（管理员）",
                 "parameters": [
@@ -300,7 +411,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "删除用户（管理员）",
                 "parameters": [
@@ -342,7 +453,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "根据 ID 获取用户（管理员）",
                 "parameters": [
@@ -383,7 +494,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "根据 ID 获取用户信息",
                 "parameters": [
@@ -424,7 +535,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "分页查询用户列表（管理员）",
                 "parameters": [
@@ -466,7 +577,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "用户登录",
                 "responses": {
@@ -498,7 +609,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "用户登录",
                 "parameters": [
@@ -540,7 +651,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "用户注销",
                 "responses": {
@@ -574,7 +685,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "用户注册",
                 "parameters": [
@@ -620,7 +731,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "userHandler"
                 ],
                 "summary": "更新用户（管理员）",
                 "parameters": [
@@ -693,6 +804,21 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_romeokeita231_Article_Generator_internal_model.AiModifyOutlineRequest": {
+            "type": "object",
+            "required": [
+                "modifySuggestion",
+                "taskId"
+            ],
+            "properties": {
+                "modifySuggestion": {
+                    "type": "string"
+                },
+                "taskId": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_romeokeita231_Article_Generator_internal_model.ArticleInfo": {
             "type": "object",
             "properties": {
@@ -704,6 +830,13 @@ const docTemplate = `{
                 },
                 "createTime": {
                     "type": "string"
+                },
+                "enabledImageMethods": {
+                    "description": "允许的配图方式列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "errorMessage": {
                     "type": "string"
@@ -729,7 +862,15 @@ const docTemplate = `{
                         "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.OutlineSection"
                     }
                 },
+                "phase": {
+                    "description": "当前阶段",
+                    "type": "string"
+                },
                 "status": {
+                    "type": "string"
+                },
+                "style": {
+                    "description": "文章风格",
                     "type": "string"
                 },
                 "subTitle": {
@@ -738,7 +879,18 @@ const docTemplate = `{
                 "taskId": {
                     "type": "string"
                 },
+                "titleOptions": {
+                    "description": "标题方案列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.TitleOption"
+                    }
+                },
                 "topic": {
+                    "type": "string"
+                },
+                "userDescription": {
+                    "description": "用户补充描述",
                     "type": "string"
                 },
                 "userId": {
@@ -766,6 +918,47 @@ const docTemplate = `{
                 },
                 "totalRow": {
                     "type": "integer"
+                }
+            }
+        },
+        "github_com_romeokeita231_Article_Generator_internal_model.ConfirmOutlineRequest": {
+            "type": "object",
+            "required": [
+                "outline",
+                "taskId"
+            ],
+            "properties": {
+                "outline": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.OutlineSection"
+                    }
+                },
+                "taskId": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_romeokeita231_Article_Generator_internal_model.ConfirmTitleRequest": {
+            "type": "object",
+            "required": [
+                "selectedMainTitle",
+                "selectedSubTitle",
+                "taskId"
+            ],
+            "properties": {
+                "selectedMainTitle": {
+                    "type": "string"
+                },
+                "selectedSubTitle": {
+                    "type": "string"
+                },
+                "taskId": {
+                    "type": "string"
+                },
+                "userDescription": {
+                    "description": "用户补充描述（可选）",
+                    "type": "string"
                 }
             }
         },
@@ -983,6 +1176,17 @@ const docTemplate = `{
                 "userPassword": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "github_com_romeokeita231_Article_Generator_internal_model.TitleOption": {
+            "type": "object",
+            "properties": {
+                "mainTitle": {
+                    "type": "string"
+                },
+                "subTitle": {
+                    "type": "string"
                 }
             }
         },

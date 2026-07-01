@@ -2,11 +2,11 @@
 /* eslint-disable */
 // API 更新时间：
 // API 唯一标识：
-import * as article from './articleHandler'
+import * as articleHandler from './articleHandler'
 import * as health from './health'
-import * as user from './userHandler'
+import * as userHandler from './userHandler'
 export default {
-  article,
+  articleHandler,
   health,
-  user,
+  userHandler,
 }
