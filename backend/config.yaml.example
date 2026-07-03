@@ -71,3 +71,13 @@ cos:
   region: "ap-beijing"
   bucket: "your-bucket-name"
   domain: ""  # CDN 加速域名（可选）
+
+# 智能体编排配置
+agent:
+  orchestrator:
+    # 是否启用多智能体编排模式（支持配图并行生成）
+    # true: 使用多智能体编排器 (ArticleAgentOrchestrator)
+    # false: 使用原有的 ArticleAgentService
+    enabled: true
+  # Agent 最大迭代次数
+  max_iterations: 10

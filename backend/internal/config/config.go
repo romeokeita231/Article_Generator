@@ -22,7 +22,18 @@ type Config struct {
 	EmojiPack  EmojiPackConfig  `mapstructure:"emoji_pack"`
 	COS        COSConfig        `mapstructure:"cos"`
     Log      LogConfig      `mapstructure:"log"`
+    Agent    AgentConfig    `mapstructure:"agent"`
+}
 
+// AgentConfig 智能体配置
+type AgentConfig struct {
+    Orchestrator  OrchestratorConfig `mapstructure:"orchestrator"`
+    MaxIterations int                `mapstructure:"max_iterations"`
+}
+
+// OrchestratorConfig 智能体编排器配置
+type OrchestratorConfig struct {
+    Enabled bool `mapstructure:"enabled"` // 是否启用多智能体编排模式
 }
 
 // ServerConfig 服务器配置

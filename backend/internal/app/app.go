@@ -1,33 +1,34 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
-	"context"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+
+	"github.com/romeokeita231/Article_Generator/internal/agent"
 	"github.com/romeokeita231/Article_Generator/internal/common"
 	"github.com/romeokeita231/Article_Generator/internal/config"
 	"github.com/romeokeita231/Article_Generator/internal/handler"
 	"github.com/romeokeita231/Article_Generator/internal/service"
 	"github.com/romeokeita231/Article_Generator/internal/store"
-
 )
 
 // App 应用程序
 type App struct {
-	Config *config.Config
-	DB     *gorm.DB
+	Config      *config.Config
+	DB          *gorm.DB
 	RedisClient *redis.Client
 
 	// Handlers
-	UserHandler    *handler.UserHandler
-	ArticleHandler *handler.ArticleHandler
-	HealthHandler  *handler.HealthHandler
+	UserHandler       *handler.UserHandler
+	ArticleHandler    *handler.ArticleHandler
+	HealthHandler     *handler.HealthHandler
 	StatisticsHandler *handler.StatisticsHandler
 
 	// Services (用于中间件)
@@ -95,9 +96,18 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("init agent service: %w", err)
 	}
 
+	// 创建多智能体编排器（共享同一个 LLM 实例，避免重复初始化）
+	orchestrator := agent.NewArticleAgentOrchestrator(
+		cfg,
+		agentService.GetLLM(),
+		agentLogService,
+		sseManager,
+		imageStrategy,
+	)
 
+	log.Printf("智能体编排器初始化完成，启用状态: %v", cfg.Agent.Orchestrator.Enabled)
 
-	articleService := service.NewArticleService(articleStore, agentService, quotaService, sseManager)
+	articleService := service.NewArticleService(articleStore, agentService, quotaService, orchestrator, cfg, sseManager)
 
 	// 处理器层
 	userHandler := handler.NewUserHandler(userService)
@@ -106,14 +116,14 @@ func New(cfg *config.Config) (*App, error) {
 	statisticsHandler := handler.NewStatisticsHandler(statisticsService)
 
 	return &App{
-		Config:         cfg,
-		DB:             db,
-		UserHandler:    userHandler,
-		ArticleHandler: articleHandler,
-		HealthHandler:  healthHandler,
+		Config:            cfg,
+		DB:                db,
+		UserHandler:       userHandler,
+		ArticleHandler:    articleHandler,
+		HealthHandler:     healthHandler,
 		StatisticsHandler: statisticsHandler,
-		UserService:    userService,
-		RedisClient:    redisClient,
+		UserService:       userService,
+		RedisClient:       redisClient,
 	}, nil
 }
 
@@ -141,28 +151,27 @@ func initDB(cfg *config.Config) (*gorm.DB, error) {
 }
 
 func initRedis(cfg *config.Config) (*redis.Client, error) {
-    client := redis.NewClient(&redis.Options{
-        Addr:     cfg.Redis.GetRedisAddr(),
-        Password: cfg.Redis.Password,
-        DB:       cfg.Redis.DB,
-    })
+	client := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.GetRedisAddr(),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
 
-    ctx := context.Background()
-    if err := client.Ping(ctx).Err(); err != nil {
-        return nil, fmt.Errorf("redis ping: %w", err)
-    }
-    return client, nil
+	ctx := context.Background()
+	if err := client.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("redis ping: %w", err)
+	}
+	return client, nil
 }
 
 // Close 关闭资源
 func (a *App) Close() error {
-    sqlDB, _ := a.DB.DB()
-    if err := sqlDB.Close(); err != nil {
-        return err
-    }
-    if a.RedisClient != nil {
-        a.RedisClient.Close()
-    }
-    return nil
+	sqlDB, _ := a.DB.DB()
+	if err := sqlDB.Close(); err != nil {
+		return err
+	}
+	if a.RedisClient != nil {
+		a.RedisClient.Close()
+	}
+	return nil
 }
-

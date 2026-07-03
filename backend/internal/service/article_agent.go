@@ -2,44 +2,48 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-    "log"
-    "strings"
-    "encoding/json"
-    "time"
+	"log"
+	"strings"
+	"time"
 
-	"github.com/tmc/langchaingo/llms"
-    "github.com/tmc/langchaingo/llms/openai"
 	"github.com/romeokeita231/Article_Generator/internal/common"
 	"github.com/romeokeita231/Article_Generator/internal/config"
 	"github.com/romeokeita231/Article_Generator/internal/model"
-
+	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/openai"
 )
 
 // ArticleAgentService 文章智能体编排服务
 type ArticleAgentService struct {
-    llm        llms.Model
-    imageStrategy *ImageServiceStrategy // 替换原来的 pexels + cos
-    sseManager *common.SSEManager
-    agentLogService *AgentLogService
+	llm             llms.Model
+	imageStrategy   *ImageServiceStrategy // 替换原来的 pexels + cos
+	sseManager      *common.SSEManager
+	agentLogService *AgentLogService
 }
 
 func NewArticleAgentService(cfg *config.Config, imageStrategy *ImageServiceStrategy, agentLogService *AgentLogService, sseManager *common.SSEManager) (*ArticleAgentService, error) {
 
-    llm, err := openai.New(
-        openai.WithToken(cfg.AI.DashScope.APIKey),
-        openai.WithModel(cfg.AI.DashScope.Model),
-        openai.WithBaseURL("https://dashscope.aliyuncs.com/compatible-mode/v1"),
-    )
-    if err != nil {
-        return nil, fmt.Errorf("create dashscope client: %w", err)
-    }
+	baseURL := "https://dashscope.aliyuncs.com/compatible-mode/v1"
+	// 添加调试日志
+	log.Printf("初始化 DashScope 客户端: BaseURL=%s, Model=%s, APIKey=%s...",
+		baseURL, cfg.AI.DashScope.Model, maskAPIKey(cfg.AI.DashScope.APIKey))
 
-    return &ArticleAgentService{
-        llm: llm, 
-        imageStrategy: imageStrategy, 
-        sseManager: sseManager,
-    }, nil
+	llm, err := openai.New(
+		openai.WithToken(cfg.AI.DashScope.APIKey),
+		openai.WithModel(cfg.AI.DashScope.Model),
+		openai.WithBaseURL("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create dashscope client: %w", err)
+	}
+
+	return &ArticleAgentService{
+		llm:           llm,
+		imageStrategy: imageStrategy,
+		sseManager:    sseManager,
+	}, nil
 }
 
 // truncateString 截断字符串用于日志
@@ -50,70 +54,82 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen]
 }
 
+// maskAPIKey 遮蔽 API Key 用于日志
+func maskAPIKey(key string) string {
+	if len(key) <= 10 {
+		return "***"
+	}
+	return key[:10] + "***"
+}
+
+// GetLLM 获取 LLM 实例（用于共享给 Orchestrator）
+func (s *ArticleAgentService) GetLLM() llms.Model {
+	return s.llm
+}
 func (s *ArticleAgentService) Execute(ctx context.Context, state *model.ArticleState) error {
-    // 智能体1：生成标题
-    if err := s.agent1GenerateTitle(ctx, state); err != nil {
-        return fmt.Errorf("agent1 failed: %w", err)
-    }
-    s.sendMessage(state.TaskID, map[string]interface{}{
-        "type": "AGENT1_COMPLETE", "title": state.Title,
-    })
+	// 智能体1：生成标题
+	if err := s.agent1GenerateTitle(ctx, state); err != nil {
+		return fmt.Errorf("agent1 failed: %w", err)
+	}
+	s.sendMessage(state.TaskID, map[string]interface{}{
+		"type": "AGENT1_COMPLETE", "title": state.Title,
+	})
 
-    // 智能体2：生成大纲（流式）
-    if err := s.agent2GenerateOutlineStream(ctx, state); err != nil {
-        return fmt.Errorf("agent2 failed: %w", err)
-    }
-    s.sendMessage(state.TaskID, map[string]interface{}{
-        "type": "AGENT2_COMPLETE", "outline": state.Outline.Sections,
-    })
+	// 智能体2：生成大纲（流式）
+	if err := s.agent2GenerateOutlineStream(ctx, state); err != nil {
+		return fmt.Errorf("agent2 failed: %w", err)
+	}
+	s.sendMessage(state.TaskID, map[string]interface{}{
+		"type": "AGENT2_COMPLETE", "outline": state.Outline.Sections,
+	})
 
-    // 智能体3：生成正文（流式）
-    if err := s.agent3GenerateContent(ctx, state); err != nil {
-        return fmt.Errorf("agent3 failed: %w", err)
-    }
-    s.sendMessage(state.TaskID, map[string]interface{}{"type": "AGENT3_COMPLETE"})
+	// 智能体3：生成正文（流式）
+	if err := s.agent3GenerateContent(ctx, state); err != nil {
+		return fmt.Errorf("agent3 failed: %w", err)
+	}
+	s.sendMessage(state.TaskID, map[string]interface{}{"type": "AGENT3_COMPLETE"})
 
-    // 智能体4：分析配图需求
-    if err := s.agent4AnalyzeImageRequirements(ctx, state); err != nil {
-        return fmt.Errorf("agent4 failed: %w", err)
-    }
-    s.sendMessage(state.TaskID, map[string]interface{}{
-        "type": "AGENT4_COMPLETE", "imageRequirements": state.ImageRequirements,
-    })
+	// 智能体4：分析配图需求
+	if err := s.agent4AnalyzeImageRequirements(ctx, state); err != nil {
+		return fmt.Errorf("agent4 failed: %w", err)
+	}
+	s.sendMessage(state.TaskID, map[string]interface{}{
+		"type": "AGENT4_COMPLETE", "imageRequirements": state.ImageRequirements,
+	})
 
-    // 智能体5：生成配图
-    if err := s.agent5GenerateImages(ctx, state); err != nil {
-        return fmt.Errorf("agent5 failed: %w", err)
-    }
-    s.sendMessage(state.TaskID, map[string]interface{}{
-        "type": "AGENT5_COMPLETE", "images": state.Images,
-    })
+	// 智能体5：生成配图
+	if err := s.agent5GenerateImages(ctx, state); err != nil {
+		return fmt.Errorf("agent5 failed: %w", err)
+	}
+	s.sendMessage(state.TaskID, map[string]interface{}{
+		"type": "AGENT5_COMPLETE", "images": state.Images,
+	})
 
-    // 图文合成
-    s.mergeImagesIntoContent(state)
-    s.sendMessage(state.TaskID, map[string]interface{}{
-        "type": "MERGE_COMPLETE", "fullContent": state.FullContent,
-    })
+	// 图文合成
+	s.mergeImagesIntoContent(state)
+	s.sendMessage(state.TaskID, map[string]interface{}{
+		"type": "MERGE_COMPLETE", "fullContent": state.FullContent,
+	})
 
-    return nil
+	return nil
 }
 
 func (s *ArticleAgentService) agent1GenerateTitle(ctx context.Context, state *model.ArticleState) error {
-    prompt := strings.ReplaceAll(common.Agent1TitlePrompt, "{topic}", state.Topic)
+	prompt := strings.ReplaceAll(common.Agent1TitlePrompt, "{topic}", state.Topic)
 
-    content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
-    if err != nil {
-        return fmt.Errorf("LLM call failed: %w", err)
-    }
+	content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
+	if err != nil {
+		return fmt.Errorf("LLM call failed: %w", err)
+	}
 
-    var title model.TitleResult
-    if err := json.Unmarshal([]byte(content), &title); err != nil {
-        return fmt.Errorf("parse title failed: %w", err)
-    }
+	var title model.TitleResult
+	if err := json.Unmarshal([]byte(content), &title); err != nil {
+		return fmt.Errorf("parse title failed: %w", err)
+	}
 
-    state.Title = &title
-    log.Printf("智能体1：标题生成成功, mainTitle=%s", title.MainTitle)
-    return nil
+	state.Title = &title
+	log.Printf("智能体1：标题生成成功, mainTitle=%s", title.MainTitle)
+	return nil
 }
 
 // agent3GenerateContent 智能体3：生成正文（流式）
@@ -355,10 +371,9 @@ func (s *ArticleAgentService) buildImageResult(req *model.ImageRequirement, cosU
 	}
 }
 
-
 // sendMessage 发送 SSE 消息
 func (s *ArticleAgentService) sendMessage(taskID string, data interface{}) {
-    s.sseManager.Send(taskID, data)
+	s.sseManager.Send(taskID, data)
 }
 
 // buildAvailableMethodsDescription 构建可用配图方式说明
@@ -469,100 +484,96 @@ func (s *ArticleAgentService) validateAndFilterImageRequirements(requirements []
 	return validated
 }
 
-
-
 // ExecutePhase1 阶段1：生成标题方案
 func (s *ArticleAgentService) ExecutePhase1(ctx context.Context, state *model.ArticleState) error {
-    if err := s.agent1GenerateTitleOptions(ctx, state); err != nil {
-        return fmt.Errorf("agent1 failed: %w", err)
-    }
-    s.sendMessage(state.TaskID, map[string]interface{}{
-        "type": common.SSEMsgAgent1Complete, "titleOptions": state.TitleOptions,
-    })
-    return nil
+	if err := s.agent1GenerateTitleOptions(ctx, state); err != nil {
+		return fmt.Errorf("agent1 failed: %w", err)
+	}
+	s.sendMessage(state.TaskID, map[string]interface{}{
+		"type": common.SSEMsgAgent1Complete, "titleOptions": state.TitleOptions,
+	})
+	return nil
 }
 
 // ExecutePhase2 阶段2：生成大纲
 func (s *ArticleAgentService) ExecutePhase2(ctx context.Context, state *model.ArticleState) error {
-    if err := s.agent2GenerateOutlineStream(ctx, state); err != nil {
-        return fmt.Errorf("agent2 failed: %w", err)
-    }
-    s.sendMessage(state.TaskID, map[string]interface{}{
-        "type": common.SSEMsgAgent2Complete, "outline": state.Outline.Sections,
-    })
-    return nil
+	if err := s.agent2GenerateOutlineStream(ctx, state); err != nil {
+		return fmt.Errorf("agent2 failed: %w", err)
+	}
+	s.sendMessage(state.TaskID, map[string]interface{}{
+		"type": common.SSEMsgAgent2Complete, "outline": state.Outline.Sections,
+	})
+	return nil
 }
 
 // ExecutePhase3 阶段3：生成正文+配图
 func (s *ArticleAgentService) ExecutePhase3(ctx context.Context, state *model.ArticleState) error {
-    // 智能体3-5 + 图文合成（逻辑与原 Execute 方法相同）
-    if err := s.agent3GenerateContent(ctx, state); err != nil {
-        return fmt.Errorf("agent3 failed: %w", err)
-    }
-    // ... 后续智能体调用不变 ...
-    return nil
+	// 智能体3-5 + 图文合成（逻辑与原 Execute 方法相同）
+	if err := s.agent3GenerateContent(ctx, state); err != nil {
+		return fmt.Errorf("agent3 failed: %w", err)
+	}
+	// ... 后续智能体调用不变 ...
+	return nil
 }
 
 // agent1GenerateTitleOptions 智能体1：生成标题方案（3-5个）
 func (s *ArticleAgentService) agent1GenerateTitleOptions(ctx context.Context, state *model.ArticleState) error {
 
-    // 1. 在方法入口创建日志对象，初始状态为 RUNNING
-    startTime := time.Now()
-    agentLog := &model.AgentLog{
-        TaskID:    state.TaskID,
-        AgentName: "agent1_generate_titles",
-        StartTime: startTime,
-        Status:    "RUNNING",
-    }
+	// 1. 在方法入口创建日志对象，初始状态为 RUNNING
+	startTime := time.Now()
+	agentLog := &model.AgentLog{
+		TaskID:    state.TaskID,
+		AgentName: "agent1_generate_titles",
+		StartTime: startTime,
+		Status:    "RUNNING",
+	}
 
-    // 2. defer 确保日志一定被保存（无论成功还是失败）
-    defer func() {
-        endTime := time.Now()
-        agentLog.EndTime = &endTime
-        duration := int(time.Since(startTime).Milliseconds())
-        agentLog.DurationMs = &duration
-        s.agentLogService.SaveLogAsync(agentLog)
-    }()
+	// 2. defer 确保日志一定被保存（无论成功还是失败）
+	defer func() {
+		endTime := time.Now()
+		agentLog.EndTime = &endTime
+		duration := int(time.Since(startTime).Milliseconds())
+		agentLog.DurationMs = &duration
+		s.agentLogService.SaveLogAsync(agentLog)
+	}()
 
-    // 3. 构建 prompt 并记录
-    prompt := strings.ReplaceAll(common.Agent1TitlePrompt, "{topic}", state.Topic)
-    prompt += s.getStylePrompt(state.Style)
-    agentLog.Prompt = &prompt
+	// 3. 构建 prompt 并记录
+	prompt := strings.ReplaceAll(common.Agent1TitlePrompt, "{topic}", state.Topic)
+	prompt += s.getStylePrompt(state.Style)
+	agentLog.Prompt = &prompt
 
-    // 4. 调用 LLM
-    content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
-    if err != nil {
-        // 5. 失败时更新状态
-        agentLog.Status = "FAILED"
-        errMsg := err.Error()
-        agentLog.ErrorMessage = &errMsg
-        return fmt.Errorf("LLM call failed: %w", err)
-    }
+	// 4. 调用 LLM
+	content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
+	if err != nil {
+		// 5. 失败时更新状态
+		agentLog.Status = "FAILED"
+		errMsg := err.Error()
+		agentLog.ErrorMessage = &errMsg
+		return fmt.Errorf("LLM call failed: %w", err)
+	}
 
+	// 解析标题方案列表（JSON 数组）
+	var titleOptions []model.TitleOption
+	if err := json.Unmarshal([]byte(content), &titleOptions); err != nil {
+		agentLog.Status = "FAILED"
+		errMsg := "parse title options: " + err.Error()
+		agentLog.ErrorMessage = &errMsg
+		return fmt.Errorf("parse title options: %w", err)
+	}
 
-    // 解析标题方案列表（JSON 数组）
-    var titleOptions []model.TitleOption
-    if err := json.Unmarshal([]byte(content), &titleOptions); err != nil {
-        agentLog.Status = "FAILED"
-        errMsg := "parse title options: " + err.Error()
-        agentLog.ErrorMessage = &errMsg
-        return fmt.Errorf("parse title options: %w", err)
-    }
+	state.TitleOptions = titleOptions
 
-    state.TitleOptions = titleOptions
+	// 6. 成功时记录输出数据
+	agentLog.Status = "SUCCESS"
+	outputDataJSON, _ := json.Marshal(map[string]interface{}{
+		"optionsCount": len(titleOptions),
+		"message":      fmt.Sprintf("生成 %d 个标题方案", len(titleOptions)),
+	})
+	outputDataStr := string(outputDataJSON)
+	agentLog.OutputData = &outputDataStr
 
-    // 6. 成功时记录输出数据
-    agentLog.Status = "SUCCESS"
-    outputDataJSON, _ := json.Marshal(map[string]interface{}{
-        "optionsCount": len(titleOptions),
-        "message":      fmt.Sprintf("生成 %d 个标题方案", len(titleOptions)),
-    })
-    outputDataStr := string(outputDataJSON)
-    agentLog.OutputData = &outputDataStr
-
-    return nil
+	return nil
 }
-
 
 // getStylePrompt 根据风格获取对应的 Prompt 附加内容
 func (s *ArticleAgentService) getStylePrompt(style string) string {
@@ -585,9 +596,9 @@ func (s *ArticleAgentService) getStylePrompt(style string) string {
 }
 
 // AiModifyOutline AI 修改大纲
-func (s *ArticleAgentService) AiModifyOutline(ctx context.Context, taskID,mainTitle, subTitle string,currentOutline []model.OutlineSection, modifySuggestion string) ([]model.OutlineSection, error) {
+func (s *ArticleAgentService) AiModifyOutline(ctx context.Context, taskID, mainTitle, subTitle string, currentOutline []model.OutlineSection, modifySuggestion string) ([]model.OutlineSection, error) {
 
-    // 创建日志记录
+	// 创建日志记录
 	startTime := time.Now()
 	agentLog := &model.AgentLog{
 		TaskID:    taskID,
@@ -605,25 +616,25 @@ func (s *ArticleAgentService) AiModifyOutline(ctx context.Context, taskID,mainTi
 		s.agentLogService.SaveLogAsync(agentLog)
 	}()
 
-    // 构建当前大纲 JSON
-    currentOutlineJSON, _ := json.Marshal(currentOutline)
-    // 将输入数据转换为 JSON 格式
+	// 构建当前大纲 JSON
+	currentOutlineJSON, _ := json.Marshal(currentOutline)
+	// 将输入数据转换为 JSON 格式
 	inputDataJSON, _ := json.Marshal(map[string]interface{}{
 		"outlineSectionsCount": len(currentOutline),
 		"suggestionLength":     len(modifySuggestion),
 	})
 	inputDataStr := string(inputDataJSON)
 	agentLog.InputData = &inputDataStr
-    // 构建 prompt
-    prompt := common.AiModifyOutlinePrompt
-    prompt = strings.ReplaceAll(prompt, "{mainTitle}", mainTitle)
-    prompt = strings.ReplaceAll(prompt, "{subTitle}", subTitle)
-    prompt = strings.ReplaceAll(prompt, "{currentOutline}", string(currentOutlineJSON))
-    prompt = strings.ReplaceAll(prompt, "{modifySuggestion}", modifySuggestion)
-    agentLog.Prompt = &prompt
+	// 构建 prompt
+	prompt := common.AiModifyOutlinePrompt
+	prompt = strings.ReplaceAll(prompt, "{mainTitle}", mainTitle)
+	prompt = strings.ReplaceAll(prompt, "{subTitle}", subTitle)
+	prompt = strings.ReplaceAll(prompt, "{currentOutline}", string(currentOutlineJSON))
+	prompt = strings.ReplaceAll(prompt, "{modifySuggestion}", modifySuggestion)
+	agentLog.Prompt = &prompt
 
-    // 调用 LLM
-    content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
+	// 调用 LLM
+	content, err := llms.GenerateFromSinglePrompt(ctx, s.llm, prompt)
 	if err != nil {
 		log.Printf("AI修改大纲：LLM 调用失败, error=%v", err)
 		agentLog.Status = "FAILED"
@@ -634,17 +645,17 @@ func (s *ArticleAgentService) AiModifyOutline(ctx context.Context, taskID,mainTi
 
 	log.Printf("AI修改大纲：收到响应, contentLength=%d", len(content))
 
-    // 解析修改后的大纲
-    var outlineResult model.OutlineResult
-    if err := json.Unmarshal([]byte(content), &outlineResult); err != nil {
-        log.Printf("AI修改大纲：大纲解析失败, content=%s", content)
+	// 解析修改后的大纲
+	var outlineResult model.OutlineResult
+	if err := json.Unmarshal([]byte(content), &outlineResult); err != nil {
+		log.Printf("AI修改大纲：大纲解析失败, content=%s", content)
 		agentLog.Status = "FAILED"
 		errMsg := "parse outline: " + err.Error()
 		agentLog.ErrorMessage = &errMsg
-        return nil, fmt.Errorf("parse outline: %w", err)
-    }
+		return nil, fmt.Errorf("parse outline: %w", err)
+	}
 
-    agentLog.Status = "SUCCESS"
+	agentLog.Status = "SUCCESS"
 	// 将输出数据转换为 JSON 格式
 	outputDataJSON, _ := json.Marshal(map[string]interface{}{
 		"sectionsCount": len(outlineResult.Sections),
@@ -653,5 +664,5 @@ func (s *ArticleAgentService) AiModifyOutline(ctx context.Context, taskID,mainTi
 	outputDataStr := string(outputDataJSON)
 	agentLog.OutputData = &outputDataStr
 	log.Printf("AI修改大纲成功, sectionsCount=%d", len(outlineResult.Sections))
-    return outlineResult.Sections, nil
+	return outlineResult.Sections, nil
 }
