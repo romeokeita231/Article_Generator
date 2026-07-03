@@ -7,6 +7,35 @@ declare namespace API {
     userRole?: string
   }
 
+  type AgentExecutionStats = {
+    agentCount?: number
+    /** key: agentName, value: durationMs */
+    agentDurations?: Record<string, any>
+    logs?: AgentLog[]
+    /** SUCCESS/FAILED/RUNNING */
+    overallStatus?: string
+    taskId?: string
+    totalDurationMs?: number
+  }
+
+  type AgentLog = {
+    agentName?: string
+    createTime?: string
+    durationMs?: number
+    endTime?: string
+    errorMessage?: string
+    id?: number
+    inputData?: string
+    isDelete?: number
+    outputData?: string
+    prompt?: string
+    startTime?: string
+    /** RUNNING/SUCCESS/FAILED */
+    status?: string
+    taskId?: string
+    updateTime?: string
+  }
+
   type AiModifyOutlineRequest = {
     modifySuggestion: string
     taskId: string
@@ -76,6 +105,11 @@ declare namespace API {
 
   type DeleteRequest = {
     id: number
+  }
+
+  type getArticleExecutionLogsTaskIdParams = {
+    /** 任务ID */
+    taskId: string
   }
 
   type getArticleProgressTaskIdParams = {
@@ -163,6 +197,29 @@ declare namespace API {
     checkPassword: string
     userAccount: string
     userPassword: string
+  }
+
+  type StatisticsVO = {
+    /** 活跃用户数（本周） */
+    activeUserCount?: number
+    /** 平均耗时（毫秒） */
+    avgDurationMs?: number
+    /** 本月创作数量 */
+    monthCount?: number
+    /** 配额总使用量 */
+    quotaUsed?: number
+    /** 成功率（百分比） */
+    successRate?: number
+    /** 今日创作数量 */
+    todayCount?: number
+    /** 总创作数量 */
+    totalCount?: number
+    /** 总用户数 */
+    totalUserCount?: number
+    /** VIP 用户数 */
+    vipUserCount?: number
+    /** 本周创作数量 */
+    weekCount?: number
   }
 
   type TitleOption = {

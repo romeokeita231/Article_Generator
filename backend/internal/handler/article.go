@@ -18,9 +18,10 @@ type ArticleHandler struct {
     svc        *service.ArticleService
     userSvc    *service.UserService
     sseManager *common.SSEManager
+    agentLogService *service.AgentLogService
 }
 
-func NewArticleHandler(svc *service.ArticleService, userSvc *service.UserService, sseManager *common.SSEManager) *ArticleHandler {
+func NewArticleHandler(svc *service.ArticleService, userSvc *service.UserService, agentLogService *service.AgentLogService, sseManager *common.SSEManager) *ArticleHandler {
     return &ArticleHandler{
         svc: svc, userSvc: userSvc, sseManager: sseManager,
     }
@@ -277,4 +278,28 @@ func (h *ArticleHandler) AiModifyOutline(c *gin.Context) {
     }
 
     c.JSON(http.StatusOK, common.Success(modifiedOutline))
+}
+
+// GetExecutionLogs 
+// @Summary 获取任务执行日志
+// @Tags articleHandler
+// @Accept json
+// @Produce json
+// @Param taskId path string true "任务ID"
+// @Success 200 {object} common.BaseResponse{data=model.AgentExecutionStats}
+// @Router /article/execution-logs/{taskId} [get]
+func (h *ArticleHandler) GetExecutionLogs(c *gin.Context) {
+    taskID := c.Param("taskId")
+    if taskID == "" {
+        c.JSON(http.StatusOK, common.Error(common.ErrParams.WithMessage("任务ID不能为空")))
+        return
+    }
+
+    stats, err := h.agentLogService.GetExecutionStats(taskID)
+    if err != nil {
+        c.JSON(http.StatusOK, common.Error(common.ErrSystem.WithMessage("获取执行日志失败: "+err.Error())))
+        return
+    }
+
+    c.JSON(http.StatusOK, common.Success(stats))
 }

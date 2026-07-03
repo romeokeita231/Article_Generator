@@ -3,7 +3,9 @@ package app
 import (
 	"fmt"
 	"log"
-	
+	"context"
+
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -20,11 +22,13 @@ import (
 type App struct {
 	Config *config.Config
 	DB     *gorm.DB
+	RedisClient *redis.Client
 
 	// Handlers
 	UserHandler    *handler.UserHandler
 	ArticleHandler *handler.ArticleHandler
 	HealthHandler  *handler.HealthHandler
+	StatisticsHandler *handler.StatisticsHandler
 
 	// Services (用于中间件)
 	UserService *service.UserService
@@ -38,9 +42,15 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("init database: %w", err)
 	}
 
+	// 初始化 Redis
+	redisClient, err := initRedis(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("init redis: %w", err)
+	}
 	// 初始化各层
 	userStore := store.NewUserStore(db)
 	articleStore := store.NewArticleStore(db)
+	agentLogStore := store.NewAgentLogStore(db)
 
 	// 初始化 SSE 管理器
 	sseManager := common.NewSSEManager()
@@ -48,6 +58,8 @@ func New(cfg *config.Config) (*App, error) {
 	// 初始化服务层
 	userService := service.NewUserService(userStore)
 	quotaService := service.NewQuotaService(userStore)
+	agentLogService := service.NewAgentLogService(agentLogStore)
+	statisticsService := service.NewStatisticsService(db, userStore, articleStore, redisClient)
 
 	// COS 服务（判断是否已配置）
 	cosEnabled := cfg.COS.Bucket != "" && cfg.COS.SecretID != "" && cfg.COS.SecretKey != ""
@@ -78,7 +90,7 @@ func New(cfg *config.Config) (*App, error) {
 	log.Println("图片服务策略初始化完成，已注册 7 个图片服务（含降级服务）")
 
 	// 智能体服务（注入 agentLogService）
-	agentService, err := service.NewArticleAgentService(cfg, imageStrategy, sseManager)
+	agentService, err := service.NewArticleAgentService(cfg, imageStrategy, agentLogService, sseManager)
 	if err != nil {
 		return nil, fmt.Errorf("init agent service: %w", err)
 	}
@@ -89,8 +101,9 @@ func New(cfg *config.Config) (*App, error) {
 
 	// 处理器层
 	userHandler := handler.NewUserHandler(userService)
-	articleHandler := handler.NewArticleHandler(articleService, userService, sseManager)
+	articleHandler := handler.NewArticleHandler(articleService, userService, agentLogService, sseManager)
 	healthHandler := handler.NewHealthHandler()
+	statisticsHandler := handler.NewStatisticsHandler(statisticsService)
 
 	return &App{
 		Config:         cfg,
@@ -98,7 +111,9 @@ func New(cfg *config.Config) (*App, error) {
 		UserHandler:    userHandler,
 		ArticleHandler: articleHandler,
 		HealthHandler:  healthHandler,
+		StatisticsHandler: statisticsHandler,
 		UserService:    userService,
+		RedisClient:    redisClient,
 	}, nil
 }
 
@@ -125,11 +140,29 @@ func initDB(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
+func initRedis(cfg *config.Config) (*redis.Client, error) {
+    client := redis.NewClient(&redis.Options{
+        Addr:     cfg.Redis.GetRedisAddr(),
+        Password: cfg.Redis.Password,
+        DB:       cfg.Redis.DB,
+    })
+
+    ctx := context.Background()
+    if err := client.Ping(ctx).Err(); err != nil {
+        return nil, fmt.Errorf("redis ping: %w", err)
+    }
+    return client, nil
+}
+
 // Close 关闭资源
 func (a *App) Close() error {
-	sqlDB, err := a.DB.DB()
-	if err != nil {
-		return err
-	}
-	return sqlDB.Close()
+    sqlDB, _ := a.DB.DB()
+    if err := sqlDB.Close(); err != nil {
+        return err
+    }
+    if a.RedisClient != nil {
+        a.RedisClient.Close()
+    }
+    return nil
 }
+

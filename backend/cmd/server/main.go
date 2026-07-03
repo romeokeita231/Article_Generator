@@ -80,7 +80,6 @@ func main() {
 
 		// 文章路由（需要登录用户权限）
 		userAuth := middleware.AuthCheck(application.UserService, common.UserRole)
-
 		article := api.Group("/article")
 		{
 			article.POST("/create", userAuth, application.ArticleHandler.Create)
@@ -88,11 +87,20 @@ func main() {
 			article.GET("/:taskId", userAuth, application.ArticleHandler.Get)
 			article.POST("/list", userAuth, application.ArticleHandler.List)
 			article.POST("/delete", userAuth, application.ArticleHandler.Delete)
-			
+
 			article.POST("/confirm-title", userAuth, application.ArticleHandler.ConfirmTitle)
 			article.POST("/confirm-outline", userAuth, application.ArticleHandler.ConfirmOutline)
 			article.POST("/ai-modify-outline", userAuth, application.ArticleHandler.AiModifyOutline)
+			article.GET("/execution-logs/:taskId", application.ArticleHandler.GetExecutionLogs)
 
+		}
+
+		// 统计路由（仅管理员）
+		adminAuth := middleware.AuthCheck(application.UserService, common.AdminRole)
+		statistics := api.Group("/statistics")
+		statistics.Use(adminAuth)
+		{
+			statistics.GET("/overview", application.StatisticsHandler.GetStatistics)
 		}
 
 	}

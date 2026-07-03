@@ -4,9 +4,11 @@
 // API 唯一标识：
 import * as articleHandler from './articleHandler'
 import * as health from './health'
+import * as statisticsHandler from './statisticsHandler'
 import * as userHandler from './userHandler'
 export default {
   articleHandler,
   health,
+  statisticsHandler,
   userHandler,
 }

@@ -369,24 +369,32 @@ func (s *ArticleService) SaveTitleOptions(taskID string, titleOptions []model.Ti
 
 // AiModifyOutline AI 修改大纲
 func (s *ArticleService) AiModifyOutline(taskID, modifySuggestion string, userID int64, isAdmin bool) ([]model.OutlineSection, error) {
+    // 获取文章
     article, err := s.store.GetByTaskID(taskID)
     if err != nil {
         return nil, common.ErrNotFound.WithMessage("文章不存在")
     }
-
+    // 权限校验
     if !isAdmin && article.UserID != userID {
         return nil, common.ErrNoAuth
     }
-
+    // 校验当前阶段
     if article.Phase != model.PhaseOutlineEditing {
         return nil, common.ErrParams.WithMessage("当前阶段不允许修改大纲")
     }
 
+    // 解析当前大纲
     var currentOutline []model.OutlineSection
     if article.Outline != nil {
         _ = json.Unmarshal([]byte(*article.Outline), &currentOutline)
     }
 
-    ctx := context.Background()
-    return s.agentSvc.AiModifyOutline(ctx, *article.MainTitle, *article.SubTitle, currentOutline, modifySuggestion)
+    // 调用智能体修改大纲
+	ctx := context.Background()
+	modifiedOutline, err := s.agentSvc.AiModifyOutline(ctx, taskID, *article.MainTitle, *article.SubTitle, currentOutline, modifySuggestion)
+	if err != nil {
+		return nil, common.ErrOperation.WithMessage("AI修改大纲失败: " + err.Error())
+	}
+
+	return modifiedOutline, nil
 }

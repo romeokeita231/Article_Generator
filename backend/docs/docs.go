@@ -217,6 +217,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/article/execution-logs/{taskId}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "articleHandler"
+                ],
+                "summary": "获取任务执行日志",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "taskId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_common.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.AgentExecutionStats"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/article/list": {
             "post": {
                 "consumes": [
@@ -351,6 +394,40 @@ const docTemplate = `{
                         "description": "ok",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/statistics/overview": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statisticsHandler"
+                ],
+                "summary": "获取系统统计数据（仅管理员）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_common.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.StatisticsVO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -804,6 +881,85 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_romeokeita231_Article_Generator_internal_model.AgentExecutionStats": {
+            "type": "object",
+            "properties": {
+                "agentCount": {
+                    "type": "integer"
+                },
+                "agentDurations": {
+                    "description": "key: agentName, value: durationMs",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_romeokeita231_Article_Generator_internal_model.AgentLog"
+                    }
+                },
+                "overallStatus": {
+                    "description": "SUCCESS/FAILED/RUNNING",
+                    "type": "string"
+                },
+                "taskId": {
+                    "type": "string"
+                },
+                "totalDurationMs": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_romeokeita231_Article_Generator_internal_model.AgentLog": {
+            "type": "object",
+            "properties": {
+                "agentName": {
+                    "type": "string"
+                },
+                "createTime": {
+                    "type": "string"
+                },
+                "durationMs": {
+                    "type": "integer"
+                },
+                "endTime": {
+                    "type": "string"
+                },
+                "errorMessage": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "inputData": {
+                    "type": "string"
+                },
+                "isDelete": {
+                    "type": "integer"
+                },
+                "outputData": {
+                    "type": "string"
+                },
+                "prompt": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "RUNNING/SUCCESS/FAILED",
+                    "type": "string"
+                },
+                "taskId": {
+                    "type": "string"
+                },
+                "updateTime": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_romeokeita231_Article_Generator_internal_model.AiModifyOutlineRequest": {
             "type": "object",
             "required": [
@@ -1176,6 +1332,51 @@ const docTemplate = `{
                 "userPassword": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "github_com_romeokeita231_Article_Generator_internal_model.StatisticsVO": {
+            "type": "object",
+            "properties": {
+                "activeUserCount": {
+                    "description": "活跃用户数（本周）",
+                    "type": "integer"
+                },
+                "avgDurationMs": {
+                    "description": "平均耗时（毫秒）",
+                    "type": "integer"
+                },
+                "monthCount": {
+                    "description": "本月创作数量",
+                    "type": "integer"
+                },
+                "quotaUsed": {
+                    "description": "配额总使用量",
+                    "type": "integer"
+                },
+                "successRate": {
+                    "description": "成功率（百分比）",
+                    "type": "number"
+                },
+                "todayCount": {
+                    "description": "今日创作数量",
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "description": "总创作数量",
+                    "type": "integer"
+                },
+                "totalUserCount": {
+                    "description": "总用户数",
+                    "type": "integer"
+                },
+                "vipUserCount": {
+                    "description": "VIP 用户数",
+                    "type": "integer"
+                },
+                "weekCount": {
+                    "description": "本周创作数量",
+                    "type": "integer"
                 }
             }
         },

@@ -91,6 +91,23 @@ export async function postArticleOpenApiDelete(
   })
 }
 
+/** 获取任务执行日志 GET /article/execution-logs/${param0} */
+export async function getArticleExecutionLogsTaskId(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getArticleExecutionLogsTaskIdParams,
+  options?: { [key: string]: any }
+) {
+  const { taskId: param0, ...queryParams } = params
+  return request<API.BaseResponse & { data?: API.AgentExecutionStats }>(
+    `/article/execution-logs/${param0}`,
+    {
+      method: 'GET',
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  )
+}
+
 /** 分页查询文章列表 POST /article/list */
 export async function postArticleList(
   body: API.QueryArticleRequest,
